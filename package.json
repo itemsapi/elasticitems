@@ -1,0 +1,25 @@
+{
+  "name": "elasticitems",
+  "version": "1.0.0",
+  "description": "High level client for Elasticsearch written in Node.js",
+  "main": "test.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/itemsapi/elasticitems.git"
+  },
+  "author": "Mateusz Rzepa",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/itemsapi/elasticitems/issues"
+  },
+  "homepage": "https://github.com/itemsapi/elasticitems#readme",
+  "dependencies": {
+    "bluebird": "^3.5.0",
+    "elastic.js": "^1.2.0",
+    "elasticsearch": "^13.3.1",
+    "lodash": "^3.10.1"
+  }
+}
