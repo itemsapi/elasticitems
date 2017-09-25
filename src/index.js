@@ -1,5 +1,7 @@
 const builder = require('./builder');
 const elasticsearch = require('elasticsearch');
+const searchHelper = require('./helpers/search')();
+const Promise = require('bluebird');
 
 module.exports = function elasticitems(conf, configuration) {
 
@@ -26,13 +28,22 @@ module.exports = function elasticitems(conf, configuration) {
       var body = builder.searchBuilder(input, collection)
 
       //console.log(body);
-      console.log(JSON.stringify(body, null, 2));
+      //console.log(JSON.stringify(body, null, 2));
 
       return client.search({
         index: input.index,
         type: input.type,
-        body: body,
+        body: body
       })
+      .then(result => {
+
+        //return r;
+        return searchHelper.searchConverter(input, collection, result);
+      })
+    },
+
+    similar: function() {
+
     },
 
     /**

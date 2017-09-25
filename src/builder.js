@@ -38,7 +38,7 @@ exports.searchBuilder = function(data, collection) {
   // responsible for filtering items
   var filters = _.values(aggregationFilters);
 
-  console.log(filters);
+  //console.log(filters);
 
   body.filter(ejs.AndFilter(filters));
   //body.filter(ejs.AndFilter(ejs.TermFilter('enabled', true)));

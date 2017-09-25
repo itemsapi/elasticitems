@@ -20,6 +20,7 @@
     "bluebird": "^3.5.0",
     "elastic.js": "^1.2.0",
     "elasticsearch": "^13.3.1",
-    "lodash": "^3.10.1"
+    "lodash": "^3.10.1",
+    "slug": "^0.9.1"
   }
 }
