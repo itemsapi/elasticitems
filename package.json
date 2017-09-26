@@ -1,6 +1,6 @@
 {
   "name": "elasticitems",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "High level client for Elasticsearch written in Node.js",
   "main": "test.js",
   "scripts": {
@@ -22,5 +22,8 @@
     "elasticsearch": "^13.3.1",
     "lodash": "^3.10.1",
     "slug": "^0.9.1"
+  },
+  "devDependencies": {
+    "sinon": "^3.3.0"
   }
 }

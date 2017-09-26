@@ -34,7 +34,7 @@ exports.searchBuilder = function(data, collection) {
 
   //console.log(data);
 
-  var aggregationFilters = exports.generateAggregationFilters(aggregationsOptions, data.aggs || data.filters);
+  var aggregationFilters = exports.generateAggregationFilters(aggregationsOptions, data);
   // responsible for filtering items
   var filters = _.values(aggregationFilters);
 
@@ -126,13 +126,24 @@ exports.generateAggregations = function(aggregations, filters, input) {
     //console.log(key, value.field);
     // we considering two different aggregations formatting (object | array)
     key = value.name || key;
-    var filterAggregation = ejs.FilterAggregation(key)
-    .filter(ejs.AndFilter(_.values(_.omit(filters, key))));
+
+    var filter = ejs.AndFilter(_.values(_.omit(filters, key)))
 
     if (value.conjunction === true) {
-      var filterAggregation = ejs.FilterAggregation(key)
-      .filter(ejs.AndFilter(_.values(filters)));
+      filter = ejs.AndFilter(_.values(filters));
     }
+
+    // we should kick of filters from not_filters param
+    // new feature
+    if (input.not_filters && input.not_filters[key]) {
+      var not_filter = ejs.NotFilter(ejs.TermsFilter(value.field, input.not_filters[key]));
+      //console.log(JSON.stringify(input));
+      //console.log(JSON.stringify([filterAggregation, not_filter]));
+      filter = ejs.AndFilter([filter, not_filter]);
+    }
+
+    var filterAggregation = ejs.FilterAggregation(key)
+    .filter(filter);
 
     var aggregation = null;
     if (value.type === 'terms') {
@@ -204,19 +215,63 @@ exports.generateSort = function(sortOptions, input) {
 /**
  * generate terms filter for aggregation
  */
-exports.generateTermsFilter = function(options, values) {
-  if (options.conjunction === true) {
+module.exports.generateTermsFilter = function(aggregation, values, not_values) {
+
+
+  /*if (not_values.length) {
+    return ejs.NotFilter(ejs.AndFilter(_.map(not_values, function(val) {
+      return ejs.TermFilter(aggregation.field, val);
+    })));
+  }*/
+
+  var filter;
+
+  if (_.isArray(values) && values.length) {
+    if (aggregation.conjunction === true) {
+      filter = ejs.AndFilter(_.map(values, function(val) {
+        return ejs.TermFilter(aggregation.field, val);
+      }));
+
+      /*console.log(JSON.stringify(_.map(values, function(val) {
+        return ejs.TermFilter(aggregation.field, val);
+        })));*/
+    } else {
+
+      filter = ejs.TermsFilter(aggregation.field, values);
+    }
+  }
+
+  if (not_values.length) {
+    /*var not_filter = ejs.NotFilter(ejs.AndFilter(_.map(not_values, function(val) {
+      return ejs.TermFilter(aggregation.field, val);
+    })));*/
+
+    var not_filter = ejs.NotFilter(ejs.TermsFilter(aggregation.field, not_values));
+
+    var filters = [not_filter];
+    if (filter) {
+      filters.push(filter);
+    }
+
+    //console.log(JSON.stringify(not_filter));
+
+    filter = ejs.AndFilter(filters);
+  }
+
+  return filter;
+  /*if (aggregation.conjunction === true) {
     return ejs.AndFilter(_.map(values, function(val) {
-      return ejs.TermFilter(options.field, val);
+      return ejs.TermFilter(aggregation.field, val);
     }));
   }
-  return ejs.TermsFilter(options.field, values);
+
+  return ejs.TermsFilter(aggregation.field, values);*/
 }
 
 /**
  * generate range filter for aggregation
  */
-exports.generateRangeFilter = function(options, values) {
+module.exports.generateRangeFilter = function(options, values) {
   var rangeFilters = _.chain(values)
   .map(function(value) {
     var rangeOptions = _.findWhere(options.ranges, {name: value});
@@ -259,32 +314,51 @@ exports.getEnabledFilter = function(collection, data) {
   return enabledFilter;
 }
 
+exports.getEmptyFilter = function(collection, data) {
+}
+
 /**
  * generate aggregation filters
  */
-exports.generateAggregationFilters = function(aggregations, values) {
+exports.generateAggregationFilters = function(aggregations, data) {
 
   var aggregation_filters = {};
 
   //console.log('values');
   //console.log(values);
+  //console.log('bbbb');
+  //console.log(aggregations);
 
-  _.each(values, function(value, key) {
-    if (value.length) {
-      var aggregation = collectionHelper({
-        aggregations: aggregations
-      }).getAggregation(key);
+  _.each(aggregations, function(value, key) {
+
+
+    if (1 || value.length) {
+      var aggregation = aggregations[key];
 
       if (!aggregation) {
         throw new Error('aggregation "' + key + '" is not defined in conf')
       }
 
-      if (aggregation.type === 'terms') {
-        aggregation_filters[key] = exports.generateTermsFilter(aggregation, value)
-      } else if (aggregation.type === 'range') {
-        aggregation_filters[key] = exports.generateRangeFilter(aggregation, value);
+      var values = data.filters && data.filters[key] ? data.filters[key] : [];
+      var not_values = data.not_filters && data.not_filters[key] ? data.not_filters[key] : [];
+
+      //console.log(key);
+      //console.log(values);
+      //console.log(not_values);
+
+      //if ((_.isArray(values) && values.length) || (_.isArray(not_values) && not_values.length)) {
+      if (values.length || not_values.length) {
+
+        if (aggregation.type === 'terms') {
+          aggregation_filters[key] = module.exports.generateTermsFilter(aggregation, values, not_values);
+        } else if (aggregation.type === 'range') {
+          aggregation_filters[key] = module.exports.generateRangeFilter(aggregation, values);
+        } else if (aggregation.type === 'is_empty') {
+          //aggregation_filters[key] = exports.generateIsEmptyFilter(aggregation, value);
+        }
       }
     }
   });
+
   return aggregation_filters;
 }
