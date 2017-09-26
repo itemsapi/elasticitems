@@ -137,8 +137,6 @@ exports.generateAggregations = function(aggregations, filters, input) {
     // new feature
     if (input.not_filters && input.not_filters[key]) {
       var not_filter = ejs.NotFilter(ejs.TermsFilter(value.field, input.not_filters[key]));
-      //console.log(JSON.stringify(input));
-      //console.log(JSON.stringify([filterAggregation, not_filter]));
       filter = ejs.AndFilter([filter, not_filter]);
     }
 
@@ -169,6 +167,10 @@ exports.generateAggregations = function(aggregations, filters, input) {
       _.each(value.ranges, function(v, k) {
         aggregation.range(v.gte, v.lte, v.name);
       });
+    } else if (value.type === 'is_empty') {
+      aggregation = ejs.MissingAggregation(key).field(value.field);
+      //aggregation = ejs.FilterAggregation(key).filter([ejs.MissingFilter(value.field), 'empty']);
+
     } else if (value.type === 'geo_distance') {
       aggregation = ejs.GeoDistanceAggregation(key)
       .field(value.field)
@@ -217,13 +219,6 @@ exports.generateSort = function(sortOptions, input) {
  */
 module.exports.generateTermsFilter = function(aggregation, values, not_values) {
 
-
-  /*if (not_values.length) {
-    return ejs.NotFilter(ejs.AndFilter(_.map(not_values, function(val) {
-      return ejs.TermFilter(aggregation.field, val);
-    })));
-  }*/
-
   var filter;
 
   if (_.isArray(values) && values.length) {
@@ -232,9 +227,6 @@ module.exports.generateTermsFilter = function(aggregation, values, not_values) {
         return ejs.TermFilter(aggregation.field, val);
       }));
 
-      /*console.log(JSON.stringify(_.map(values, function(val) {
-        return ejs.TermFilter(aggregation.field, val);
-        })));*/
     } else {
 
       filter = ejs.TermsFilter(aggregation.field, values);
@@ -242,9 +234,6 @@ module.exports.generateTermsFilter = function(aggregation, values, not_values) {
   }
 
   if (not_values.length) {
-    /*var not_filter = ejs.NotFilter(ejs.AndFilter(_.map(not_values, function(val) {
-      return ejs.TermFilter(aggregation.field, val);
-    })));*/
 
     var not_filter = ejs.NotFilter(ejs.TermsFilter(aggregation.field, not_values));
 
@@ -253,19 +242,10 @@ module.exports.generateTermsFilter = function(aggregation, values, not_values) {
       filters.push(filter);
     }
 
-    //console.log(JSON.stringify(not_filter));
-
     filter = ejs.AndFilter(filters);
   }
 
   return filter;
-  /*if (aggregation.conjunction === true) {
-    return ejs.AndFilter(_.map(values, function(val) {
-      return ejs.TermFilter(aggregation.field, val);
-    }));
-  }
-
-  return ejs.TermsFilter(aggregation.field, values);*/
 }
 
 /**
@@ -314,7 +294,20 @@ exports.getEnabledFilter = function(collection, data) {
   return enabledFilter;
 }
 
-exports.getEmptyFilter = function(collection, data) {
+/*exports.generateIsEmptyFilter = function(aggregation) {
+
+  return ejs.AndFilter(
+    ejs.OrFilter([
+      ejs.MissingFilter('ecommerce')
+    ]));
+}*/
+
+exports.generateIsEmptyFilter = function(aggregation) {
+
+  return ejs.AndFilter(
+    ejs.OrFilter([
+      ejs.MissingFilter(aggregation.field)
+    ]));
 }
 
 /**
@@ -354,7 +347,7 @@ exports.generateAggregationFilters = function(aggregations, data) {
         } else if (aggregation.type === 'range') {
           aggregation_filters[key] = module.exports.generateRangeFilter(aggregation, values);
         } else if (aggregation.type === 'is_empty') {
-          //aggregation_filters[key] = exports.generateIsEmptyFilter(aggregation, value);
+          aggregation_filters[key] = exports.generateIsEmptyFilter(aggregation, values);
         }
       }
     }

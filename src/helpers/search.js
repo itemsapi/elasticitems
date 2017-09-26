@@ -46,7 +46,6 @@ module.exports = function() {
   }
 
   var getAggregationsFacetsResponse = function(collection_aggregations, elastic_aggregations) {
-    var aggregations;
     var aggregations = getAggregationsResponse(collection_aggregations, elastic_aggregations);
 
     aggregations = _.chain(aggregations)
