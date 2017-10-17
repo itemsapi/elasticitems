@@ -34,6 +34,13 @@ module.exports = function() {
         _.extend(v, v[k]);
         delete v[k];
       }
+
+      v = _.omit(v, [
+        'sum_other_doc_count',
+        'doc_count_error_upper_bound',
+        //'doc_count'
+      ])
+
       return _.extend(v, {
         title: collection_aggregations[k].title || k,
         name: k,
@@ -48,9 +55,13 @@ module.exports = function() {
   var getAggregationsFacetsResponse = function(collection_aggregations, elastic_aggregations) {
     var aggregations = getAggregationsResponse(collection_aggregations, elastic_aggregations);
 
+    console.log(collection_aggregations);
+    console.log(elastic_aggregations);
+
     aggregations = _.chain(aggregations)
     .filter({type: 'terms'})
     .map(function(val) {
+      console.log(val);
       return _.omit(val, ['sum_other_doc_count', 'doc_count_error_upper_bound'])
     })
     .map(function(val) {

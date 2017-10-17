@@ -1,64 +1,45 @@
 {
-  "name": "movie",
-  "project": "test",
   "schema": {
-    "name": {
-      "type": "string",
-      "store": true
-    },
-    "permalink": {
-      "type": "string",
-      "store": true,
-      "index": "not_analyzed"
-    },
-    "key": {
-      "type": "string",
-      "index": "not_analyzed",
-      "store": true
-    },
-    "actors": {
-      "type": "string",
-      "display": "array",
-      "index": "not_analyzed",
-      "store": true
-    },
     "tags": {
       "type": "string",
-      "display": "array",
       "index": "not_analyzed",
       "store": true
-    },
-    "year": {
-      "type": "integer",
-      "store": true
-    },
-    "rating": {
-      "type": "string",
-      "store": true
-    },
-    "image": {
-      "type": "string",
-      "display": "image"
     }
   },
   "aggregations": {
     "tags": {
       "type": "terms",
       "field": "tags",
-      "size": 10,
+      "conjunction": true,
+      "size": 1000,
       "title": "Tags"
     },
-    "actors_terms": {
+    "tags_or": {
+      "type": "terms",
+      "field": "tags",
+      "conjunction": false,
+      "size": 1000,
+      "title": "Tags OR"
+    },
+    "empty_tags": {
+      "position": 80,
+      "field": "tags",
+      "size": 15,
+      "type": "is_empty"
+    },
+    "actors": {
       "type": "terms",
       "field": "actors",
-      "size": 10,
+      "conjunction": true,
+      "size": 1000,
       "title": "Actors"
     },
-    "director_terms": {
+    "actors_or": {
       "type": "terms",
-      "field": "director",
-      "size": 5,
-      "title": "Directors"
+      "field": "actors",
+      "conjunction": false,
+      "size": 1000,
+      "title": "Actors"
     }
   },
   "sortings": {
@@ -88,23 +69,11 @@
         { "rating" : {"order" : "desc"}}
       ]
     },
-    "alphabetically": {
+    "name": {
       "title": "AZ",
       "type": "normal",
       "order": "asc",
       "field": "name"
     }
-  },
-  "table": {
-    "fields": [
-      "image",
-      "name",
-      "director",
-      "rating",
-      "year",
-      "votes"
-    ]
-  },
-  "test": true,
-  "updated_at": "2016-10-01T09:52:20.547Z"
+  }
 }
