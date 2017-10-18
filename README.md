@@ -55,6 +55,14 @@ Responsible for defining global configuration.
 
   * **<code>query_string</code>** i.e. "brand:Audi OR brand:Mercedes"
 
+### elasticitems.similar(id, options)
+
+Show similar items based on collaborative filtering
+
+#### `options`
+
+  * **<code>fields</code>** i.e ['tags'].
+
 ### elasticitems.aggregation(options)
 
 It returns full list of filters for specific aggregation

@@ -4,6 +4,11 @@
       "type": "string",
       "index": "not_analyzed",
       "store": true
+    },
+    "actors": {
+      "type": "string",
+      "index": "not_analyzed",
+      "store": true
     }
   },
   "aggregations": {

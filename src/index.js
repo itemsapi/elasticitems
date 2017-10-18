@@ -38,6 +38,46 @@ module.exports = function elasticitems(elastic_config, search_config) {
     })
   }
 
+  var similar = function(id, input) {
+    var query = {
+      filtered: {
+        query: {
+          mlt: {
+            fields: input.fields,
+            ids: [id],
+            min_doc_freq: 0,
+            min_term_freq: 0
+          }
+        }
+      }
+    }
+
+    if (input.query_string) {
+      query.filtered.filter = {
+        query: {
+          query_string: {
+            query: input.query_string
+          }
+        }
+      }
+    }
+
+    var body = {
+      query: query,
+      //from: 0,
+      //size: 5
+    }
+
+    return client.search({
+      index: input.index || search_config.index,
+      type: input.type || search_config.type,
+      body: body
+    })
+    .then(function(result) {
+      return searchHelper.similarConverter(input, result);
+    })
+  }
+
   return {
 
     search: search,
@@ -160,10 +200,7 @@ module.exports = function elasticitems(elastic_config, search_config) {
       })
     },
 
-    similar: function() {
-
-    },
-
+    similar: similar,
 
     /**
      * reindex items

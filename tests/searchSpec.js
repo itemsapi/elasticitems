@@ -2,7 +2,7 @@ var assert = require('assert');
 var should = require('should');
 var sinon = require('sinon');
 var searchHelper = require('./../src/helpers/search');
-var search = require('./../src/index');
+var ElasticItems = require('./../src/index');
 var elastic;
 var elasticitems;
 var search_config = require('./fixtures/movies-collection.json');
@@ -17,9 +17,10 @@ describe('should search movies', function() {
 
   before(function(done) {
 
-    elasticitems = search({
+    elasticitems = ElasticItems({
       host: HOST,
       index: INDEX,
+      type: INDEX,
     }, search_config);
 
     elastic = new elasticsearch.Client({
@@ -62,8 +63,8 @@ describe('should search movies', function() {
         //assert.equal(undefined, v.data.aggregations.tags.doc_count)
         assert.equal(92, v.data.aggregations.tags.buckets.length)
         assert.equal('Tags', v.data.aggregations.tags.title)
-        assert.equal(466, v.data.aggregations.actors.buckets.length)
-        assert.equal(466, v.data.aggregations.actors_or.buckets.length)
+        assert.equal(262, v.data.aggregations.actors.buckets.length)
+        assert.equal(262, v.data.aggregations.actors_or.buckets.length)
         done();
       })
     });
@@ -239,5 +240,21 @@ describe('should search movies', function() {
 
   describe('should make similarity on movies', function() {
 
+    it('makes a simple similarity', function(done) {
+
+      elasticitems.search({
+        query: 'the godfather 1972'
+      })
+      .then(result => {
+        assert.deepEqual('The Godfather', result.data.items[0].name);
+        return elasticitems.similar(result.data.items[0].id, {
+          fields: ['actors']
+        })
+      })
+      .then(result => {
+        assert.deepEqual('The Godfather: Part II', result.data.items[0].name);
+        done();
+      })
+    });
   })
 })
