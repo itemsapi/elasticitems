@@ -1,5 +1,7 @@
 var assert = require('assert');
 var should = require('should');
+var sinon = require('sinon');
+var searchHelper = require('./../src/helpers/search');
 var search = require('./../src/index');
 var elastic;
 var elasticitems;
@@ -140,8 +142,99 @@ describe('should search movies', function() {
       });
   });
 
-  describe('should make aggretations on movies', function() {
+  describe('makes single facet query', function() {
 
+    it('should make single facet query on movies', function(done) {
+
+      var spy = sinon.spy(searchHelper, 'facetsConverter');
+
+      elasticitems.aggregation({
+        name: 'tags',
+        //size: 30,
+        per_page: 5
+      })
+      .then(v => {
+        //console.log(v.data.buckets[0]);
+        assert.equal('mafia', v.data.buckets[0].key);
+        assert.equal(3, v.data.buckets[0].doc_count);
+        assert.equal(5, v.data.buckets.length);
+        assert.equal(5, v.pagination.per_page);
+        assert.equal(92, v.pagination.total);
+        assert.equal(spy.callCount, 1);
+        assert.equal(92, spy.firstCall.args[2].data.aggregations.tags.buckets.length);
+        assert.equal('tags', spy.firstCall.args[1].aggregations.tags.field);
+        assert.equal(3, spy.firstCall.args.length);
+        spy.restore();
+
+        done();
+      })
+    });
+
+    it('should make single facet query on movies with size', function(done) {
+
+      elasticitems.aggregation({
+        name: 'tags',
+        size: 30,
+        per_page: 5
+      })
+      .then(v => {
+        //console.log(v);
+        assert.equal(5, v.data.buckets.length);
+        assert.equal(5, v.pagination.per_page);
+        assert.equal(30, v.pagination.total);
+        done();
+      })
+    });
+
+    it('should make single facet query on movies with aggregation_query', function(done) {
+
+      elasticitems.aggregation({
+        name: 'tags',
+        aggregation_query: 'ma',
+        per_page: 5
+      })
+      .then(v => {
+        assert.equal(1, v.data.buckets.length);
+        assert.equal(5, v.pagination.per_page);
+        assert.equal(1, v.pagination.total);
+        done();
+      })
+    });
+
+    it('should make single facet query on movies with alphabetical sorting', function(done) {
+
+      elasticitems.aggregation({
+        name: 'tags',
+        order: 'desc',
+        sort: '_term'
+      })
+      .then(v => {
+        assert.equal('wrongful imprisonment', v.data.buckets[0].key);
+        assert.equal(1, v.data.buckets[0].doc_count);
+        done();
+      })
+    });
+
+    it('should throw an error for not existing facet', function(done) {
+
+      elasticitems.aggregation()
+      .catch(v => {
+        done();
+      })
+    });
+
+    xit('should throw an error for not existing facet', function(done) {
+
+      elasticitems.aggregation({
+        name: 'blabla'
+      })
+      .catch(v => {
+        done();
+      })
+      .error(v => {
+        done();
+      })
+    });
   })
 
   describe('should make similarity on movies', function() {

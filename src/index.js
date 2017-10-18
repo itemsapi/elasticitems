@@ -1,7 +1,8 @@
 const builder = require('./builder');
 const elasticsearch = require('elasticsearch');
-const searchHelper = require('./helpers/search')();
+const searchHelper = require('./helpers/search');
 const Promise = require('bluebird');
+const _ = require('lodash');
 
 module.exports = function elasticitems(elastic_config, search_config) {
 
@@ -14,36 +15,93 @@ module.exports = function elasticitems(elastic_config, search_config) {
     }
   });
 
+  /**
+   * per_page
+   * page
+   * query
+   * sort
+   * filters
+   */
+  var search = function(input, local_search_config) {
+    input = input || {};
+    input.per_page = input.per_page || 16;
+
+    var body = builder.searchBuilder(input, local_search_config || search_config)
+
+    return client.search({
+      index: input.index || elastic_config.index,
+      type: input.type || elastic_config.type,
+      body: body
+    })
+    .then(result => {
+      return searchHelper.searchConverter(input, local_search_config || search_config, result);
+    })
+  }
+
   return {
 
+    search: search,
+
     /**
+     * returns list of elements for specific aggregation i.e. list of tags
+     * name (aggregation name)
+     * query
      * per_page
      * page
-     * query
-     * sort
-     * filters
      */
-    search: function(input, local_search_config) {
+    aggregation: function(input) {
+
       input = input || {};
-      input.per_page = input.per_page || 16;
+      input.size = parseInt(input.size || 100)
+      input.per_page = parseInt(input.per_page || 10)
+      input.page = parseInt(input.page || 1)
+      input.sort = input.sort || '_count'
+      input.order = input.order || 'desc'
 
-      //console.log(search_config);
-      var body = builder.searchBuilder(input, local_search_config || search_config)
+      if (!input.name) {
+        return Promise.reject(new Error('Facet for given name doesn\'t exist or is incorrect'));
+      }
 
-      //console.log(body);
-      //console.log(JSON.stringify(body, null, 2));
+      // not supported yet
+      /*if (input.filter && _.isString(input.filter)) {
+        input.filter = JSON.parse(input.filter)
+      }*/
 
-      return client.search({
-        index: input.index || elastic_config.index,
-        type: input.type || elastic_config.type,
-        body: body
+      // creating local facet config and merging it with user input
+      var facet_config = search_config.aggregations[input.name];
+      facet_config.size = input.size;
+      facet_config.sort = input.sort;
+      facet_config.order = input.order;
+
+      // creating new lean search config only for single facet purpose
+      var local_search_config = {
+        aggregations: {
+          [input.name]: facet_config
+        }
+      }
+
+      return search(input, local_search_config)
+      .then(function(result) {
+        return searchHelper.facetsConverter(input, local_search_config, result);
       })
-      .then(result => {
-
-        //console.log(result);
-        //return r;
-        return searchHelper.searchConverter(input, local_search_config || search_config, result);
+      .then(function(result) {
+        return _.find(result, {
+          name: input.name
+        })
       })
+      .then(function(res) {
+        if (!res) {
+          throw new Error('Facet for given name doesn\'t exist or is incorrect');
+        }
+
+        return searchHelper.processFacet(input, res);
+      })
+    },
+
+    /**
+     * the same as aggregation
+     */
+    facet: function(input) {
     },
 
     partialUpdate: function(id, data, options) {
@@ -106,21 +164,6 @@ module.exports = function elasticitems(elastic_config, search_config) {
 
     },
 
-    /**
-     * returns list of elements for specific aggregation i.e. list of tags
-     * name (aggregation name)
-     * query
-     * per_page
-     * page
-     */
-    aggregation: function(input) {
-    },
-
-    /**
-     * the same as aggregation
-     */
-    facet: function(input) {
-    },
 
     /**
      * reindex items

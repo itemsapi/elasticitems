@@ -317,11 +317,6 @@ exports.generateAggregationFilters = function(aggregations, data) {
 
   var aggregation_filters = {};
 
-  //console.log('values');
-  //console.log(values);
-  //console.log('bbbb');
-  //console.log(aggregations);
-
   _.each(aggregations, function(value, key) {
 
 
