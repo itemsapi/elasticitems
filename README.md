@@ -29,7 +29,7 @@ elasticitems.search()
 
 #### `es_config`
 
-The first `es_config` is elasticsearch configuration object and contains values like `host`.
+The first `es_config` is elasticsearch configuration object and contains values like `host`, `index` or `type`.
 
 #### `search_config`
 
@@ -73,3 +73,18 @@ It returns full list of filters for specific aggregation
 
   * **<code>aggregation_query</code>** used for quering filters. It's not full text search
   
+### elasticitems.get(id)
+
+Returns found record otherwise throw an error
+
+### elasticitems.add(data, [options])
+
+Add a new object into index. Provide your own `id` if you don't want it auto-generated
+
+### elasticitems.partialUpdate(id, data, [options])
+
+Updates object in index
+
+### elasticitems.delete(id)
+
+Delete object from index
