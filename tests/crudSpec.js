@@ -50,6 +50,7 @@ describe('should make crud operations', function() {
 
     elasticitems.add({
       id: 'shawshank',
+      permalink: 'shawshank',
       name: 'The Shawshank Redemption',
       tags: ['drama', 'escape', 'prison']
     }, {
@@ -64,6 +65,16 @@ describe('should make crud operations', function() {
   it('should get item', function(done) {
 
     elasticitems.get('shawshank')
+    .then(v => {
+      assert.equal('shawshank', v.id)
+      assert.equal('The Shawshank Redemption', v.name)
+      done();
+    })
+  });
+
+  it('should get item by key', function(done) {
+
+    elasticitems.getBy('permalink', 'shawshank')
     .then(v => {
       assert.equal('shawshank', v.id)
       assert.equal('The Shawshank Redemption', v.name)
