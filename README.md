@@ -85,6 +85,10 @@ It returns full list of filters for specific aggregation
 
 Returns found record otherwise throw an error
 
+### elasticitems.getBy(key, value)
+
+Returns record based on key and value 
+
 ### elasticitems.add(data, [options])
 
 Add a new object into index. Provide your own `id` if you don't want it auto-generated
