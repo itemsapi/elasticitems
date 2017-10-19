@@ -108,7 +108,7 @@ module.exports = function elasticitems(elastic_config, search_config) {
       }*/
 
       // creating local facet config and merging it with user input
-      var facet_config = search_config.aggregations[input.name];
+      var facet_config = _.clone(search_config.aggregations[input.name]);
       facet_config.size = input.size;
       facet_config.sort = input.sort;
       facet_config.order = input.order;

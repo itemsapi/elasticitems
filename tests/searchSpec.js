@@ -59,6 +59,9 @@ describe('should search movies', function() {
         assert.equal(1, v.pagination.page)
         assert.equal(16, v.data.items.length)
 
+        //console.log(v.data.items[0]);
+        assert.equal(undefined, v.data.items[0].score)
+
         //console.log(v.data.aggregations.tags);
         //assert.equal(undefined, v.data.aggregations.tags.doc_count)
         assert.equal(92, v.data.aggregations.tags.buckets.length)

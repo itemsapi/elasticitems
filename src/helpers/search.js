@@ -51,11 +51,6 @@ var getAggregationsResponse = function(collection_aggregations, result_aggregati
 var getAggregationsFacetsResponse = function(collection_aggregations, result_aggregations) {
   var aggregations = getAggregationsResponse(collection_aggregations, result_aggregations);
 
-  //console.log(aggregations);
-
-  //console.log(collection_aggregations);
-  //console.log(result_aggregations);
-
   aggregations = _.chain(aggregations)
   .filter({type: 'terms'})
   .map(function(val) {
@@ -87,7 +82,8 @@ var searchConverter = function(input, collection, data) {
 
   var items = _.map(data.hits.hits, function(doc) {
     return _.extend(
-      {id: doc._id, score: doc._score},
+      //{id: doc._id, score: doc._score},
+      {id: doc._id},
       doc._source, doc.fields
     );
   })
