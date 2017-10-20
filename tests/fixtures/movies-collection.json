@@ -39,6 +39,23 @@
       "size": 1000,
       "title": "Actors"
     },
+    "rating": {
+      "ranges": [
+        {
+          "name": "8 - 9",
+          "gte": 8,
+          "lte": 9
+        },
+        {
+          "name": "< 10",
+          "gte": 9,
+          "lte": 10
+        }
+      ],
+      "conjunction": true,
+      "field": "rating",
+      "type": "range"
+    },
     "actors_or": {
       "type": "terms",
       "field": "actors",

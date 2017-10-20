@@ -29,16 +29,10 @@ exports.searchBuilder = function(data, collection) {
 
   var aggregationsOptions = collection.aggregations;
 
-  //console.log('aggregations');
-  //console.log(aggregationsOptions);
-
-  //console.log(data);
 
   var aggregationFilters = exports.generateAggregationFilters(aggregationsOptions, data);
   // responsible for filtering items
   var filters = _.values(aggregationFilters);
-
-  //console.log(filters);
 
   body.filter(ejs.AndFilter(filters));
   //body.filter(ejs.AndFilter(ejs.TermFilter('enabled', true)));
@@ -47,10 +41,6 @@ exports.searchBuilder = function(data, collection) {
 
   // generate aggretations according to options
   var aggregations = exports.generateAggregations(aggregationsOptions, aggregationFilters, data);
-
-  //console.log('aggregations');
-  //console.log(aggregations);
-  //console.log(JSON.stringify(aggregations));
 
   // add all aggregations to body builder
   _.each(aggregations, function(value) {
@@ -164,6 +154,7 @@ exports.generateAggregations = function(aggregations, filters, input) {
       aggregation = ejs.CardinalityAggregation(key).field(value.field);
     } else if (value.type === 'range') {
       aggregation = ejs.RangeAggregation(key).field(value.field);
+
       _.each(value.ranges, function(v, k) {
         aggregation.range(v.gte, v.lte, v.name);
       });
@@ -254,7 +245,7 @@ module.exports.generateTermsFilter = function(aggregation, values, not_values) {
 module.exports.generateRangeFilter = function(options, values) {
   var rangeFilters = _.chain(values)
   .map(function(value) {
-    var rangeOptions = _.findWhere(options.ranges, {name: value});
+    var rangeOptions = _.find(options.ranges, {name: value});
     // if input is incorrect
     if (!rangeOptions) {
       return null;
@@ -272,6 +263,7 @@ module.exports.generateRangeFilter = function(options, values) {
     return val !== null;
   })
   .value()
+
   return ejs.OrFilter(rangeFilters);
 }
 
@@ -329,10 +321,6 @@ exports.generateAggregationFilters = function(aggregations, data) {
 
       var values = data.filters && data.filters[key] ? data.filters[key] : [];
       var not_values = data.not_filters && data.not_filters[key] ? data.not_filters[key] : [];
-
-      //console.log(key);
-      //console.log(values);
-      //console.log(not_values);
 
       //if ((_.isArray(values) && values.length) || (_.isArray(not_values) && not_values.length)) {
       if (values.length || not_values.length) {

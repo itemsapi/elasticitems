@@ -1,6 +1,6 @@
 {
   "name": "elasticitems",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "High level client for Elasticsearch written in Node.js oriented on facets",
   "main": "index.js",
   "scripts": {
@@ -26,6 +26,7 @@
   "devDependencies": {
     "elasticbulk": "^1.0.2",
     "mocha": "^4.0.1",
+    "should": "^13.1.2",
     "sinon": "^3.3.0"
   }
 }

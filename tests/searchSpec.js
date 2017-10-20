@@ -62,7 +62,10 @@ describe('should search movies', function() {
         //console.log(v.data.items[0]);
         assert.equal(undefined, v.data.items[0].score)
 
-        //console.log(v.data.aggregations.tags);
+        //console.log(v.data.aggregations.rating);
+        assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count)
+        assert.equal('8 - 9', v.data.aggregations.rating.buckets[0].key)
+        assert.equal(4, v.data.aggregations.rating.buckets[1].doc_count)
         //assert.equal(undefined, v.data.aggregations.tags.doc_count)
         assert.equal(92, v.data.aggregations.tags.buckets.length)
         assert.equal('Tags', v.data.aggregations.tags.title)
@@ -125,6 +128,20 @@ describe('should search movies', function() {
       .then(v => {
         assert.equal(17, v.pagination.total)
         assert.equal(83, v.data.aggregations.tags_or.buckets.length)
+        done();
+      })
+    });
+
+    it('makes a simple facet filtering with ranges', function(done) {
+
+      elasticitems.search({
+        per_page: 1,
+        filters: {
+          rating: ['8 - 9']
+        }
+      })
+      .then(v => {
+        assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count)
         done();
       })
     });
