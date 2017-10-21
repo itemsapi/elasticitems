@@ -236,6 +236,20 @@ describe('should search movies', function() {
       })
     });
 
+    it('should make single facet query on movies with alphabetical sorting', function(done) {
+
+      elasticitems.aggregation({
+        field: 'tags',
+        order: 'desc',
+        sort: '_term'
+      })
+      .then(v => {
+        assert.equal('wrongful imprisonment', v.data.buckets[0].key);
+        assert.equal(1, v.data.buckets[0].doc_count);
+        done();
+      })
+    });
+
     it('should throw an error for not existing facet', function(done) {
 
       elasticitems.aggregation()

@@ -119,7 +119,7 @@ module.exports = function elasticitems(elastic_config, search_config) {
       input.sort = input.sort || '_count'
       input.order = input.order || 'desc'
 
-      if (!input.name) {
+      if (!input.name && !input.field) {
         return Promise.reject(new Error('Facet for given name doesn\'t exist or is incorrect'));
       }
 
@@ -129,15 +129,27 @@ module.exports = function elasticitems(elastic_config, search_config) {
       }*/
 
       // creating local facet config and merging it with user input
-      var facet_config = _.clone(search_config.aggregations[input.name]);
+      var facet_config = {};
+
+      if (input.name) {
+        facet_config = _.clone(search_config.aggregations[input.name]);
+      }
+
+      if (input.field) {
+        facet_config.field = input.field;
+        facet_config.type = 'terms';
+      }
+
       facet_config.size = input.size;
       facet_config.sort = input.sort;
       facet_config.order = input.order;
 
+      var key = input.name || input.field;
+
       // creating new lean search config only for single facet purpose
       var local_search_config = {
         aggregations: {
-          [input.name]: facet_config
+          [key]: facet_config
         }
       }
 
@@ -147,7 +159,7 @@ module.exports = function elasticitems(elastic_config, search_config) {
       })
       .then(function(result) {
         return _.find(result, {
-          name: input.name
+          name: key
         })
       })
       .then(function(res) {
