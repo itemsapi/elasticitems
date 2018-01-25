@@ -72,6 +72,8 @@ It returns full list of filters for specific aggregation
   * **<code>name</code>** aggregation name
 
   * **<code>per_page</code>** filters per page
+  
+  * **<code>size</code>** how much load into memory (for pagination)
 
   * **<code>page</code>** page number
   
