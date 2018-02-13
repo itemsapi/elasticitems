@@ -112,10 +112,21 @@ exports.generateAggregations = function(aggregations, filters, input) {
     }
   }
 
-  return _.map(aggregations, function(value, key) {
+  return _.map(aggregations, function(value_original, key) {
     //console.log(key, value.field);
     // we considering two different aggregations formatting (object | array)
+
+    // we need to clone otherwise if we set configuration in client as const
+    // then we get an error
+    // "TypeError: Cannot assign to read only property 'size' of object '#<Object>'"
+    var value = _.clone(value_original);
+
     key = value.name || key;
+
+    // default values
+    //value.type = value.type || 'terms';
+    //value.field = value.field || key;
+    //value.title = value.title || _.capitalize(key);
 
     var filter = ejs.AndFilter(_.values(_.omit(filters, key)))
 
