@@ -72,6 +72,8 @@ It returns full list of filters for specific aggregation
   * **<code>name</code>** aggregation name
 
   * **<code>per_page</code>** filters per page
+  
+  * **<code>size</code>** how much load into memory (for pagination)
 
   * **<code>page</code>** page number
   
@@ -90,6 +92,10 @@ It returns full list of filters for specific aggregation
 ### elasticitems.get(id)
 
 Returns found record otherwise throw an error
+
+### elasticitems.getBy(key, value)
+
+Returns record based on key and value 
 
 ### elasticitems.add(data, [options])
 
