@@ -123,11 +123,6 @@ module.exports = function elasticitems(elastic_config, search_config) {
         return Promise.reject(new Error('Facet for given name doesn\'t exist or is incorrect'));
       }
 
-      // not supported yet
-      /*if (input.filter && _.isString(input.filter)) {
-        input.filter = JSON.parse(input.filter)
-      }*/
-
       // creating local facet config and merging it with user input
       var facet_config = {};
 
@@ -151,6 +146,16 @@ module.exports = function elasticitems(elastic_config, search_config) {
         aggregations: {
           [key]: facet_config
         }
+      }
+
+      if (input.filters && _.isString(input.filters)) {
+        input.filters = JSON.parse(input.filters)
+      }
+
+      if (input.filters) {
+        _.keys(input.filters).forEach(key => {
+          local_search_config.aggregations[key] = search_config.aggregations[key];
+        })
       }
 
       return search(input, local_search_config)

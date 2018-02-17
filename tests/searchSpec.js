@@ -15,7 +15,7 @@ const elasticbulk = require('elasticbulk');
 
 describe('should search movies', function() {
 
-  before(function(done) {
+  before(async function() {
 
     elasticitems = ElasticItems({
       host: HOST,
@@ -30,21 +30,17 @@ describe('should search movies', function() {
       }
     });
 
-    elastic.indices.delete({
+    await elastic.indices.delete({
       index: INDEX
     })
     .catch(v => {
     })
-    .then(v => {
-      return elasticbulk.import(movies, {
-        index: INDEX,
-        host: HOST
-      }, search_config.schema)
-    })
+
+    await elasticbulk.import(movies, {
+      index: INDEX,
+      host: HOST
+    }, search_config.schema)
     .delay(1000)
-    .then(v => {
-      done();
-    })
   })
 
   describe('should search movies', function() {
@@ -165,46 +161,99 @@ describe('should search movies', function() {
 
   describe('makes single facet query', function() {
 
-    it('should make single facet query on movies', function(done) {
+    it('should make single facet query on movies', async function() {
 
       var spy = sinon.spy(searchHelper, 'facetsConverter');
 
-      elasticitems.aggregation({
+      var v = await elasticitems.aggregation({
         name: 'tags',
         //size: 30,
         per_page: 5
       })
-      .then(v => {
-        //console.log(v.data.buckets[0]);
-        assert.equal('mafia', v.data.buckets[0].key);
-        assert.equal(3, v.data.buckets[0].doc_count);
-        assert.equal(5, v.data.buckets.length);
-        assert.equal(5, v.pagination.per_page);
-        assert.equal(92, v.pagination.total);
-        assert.equal(spy.callCount, 1);
-        assert.equal(92, spy.firstCall.args[2].data.aggregations.tags.buckets.length);
-        assert.equal('tags', spy.firstCall.args[1].aggregations.tags.field);
-        assert.equal(3, spy.firstCall.args.length);
-        spy.restore();
 
-        done();
-      })
+      assert.equal('mafia', v.data.buckets[0].key);
+      assert.equal(3, v.data.buckets[0].doc_count);
+      assert.equal(5, v.data.buckets.length);
+      assert.equal(5, v.pagination.per_page);
+      assert.equal(92, v.pagination.total);
+      assert.equal(spy.callCount, 1);
+      assert.equal(92, spy.firstCall.args[2].data.aggregations.tags.buckets.length);
+      assert.equal('tags', spy.firstCall.args[1].aggregations.tags.field);
+      assert.equal(3, spy.firstCall.args.length);
+      spy.restore();
+
     });
 
-    it('should make single facet query on movies with size', function(done) {
+    it('should make single facet query on movies with size', async function() {
 
-      elasticitems.aggregation({
+      var v = await elasticitems.aggregation({
         name: 'tags',
         size: 30,
         per_page: 5
       })
-      .then(v => {
-        //console.log(v);
-        assert.equal(5, v.data.buckets.length);
-        assert.equal(5, v.pagination.per_page);
-        assert.equal(30, v.pagination.total);
-        done();
+
+      assert.equal(5, v.data.buckets.length);
+      assert.equal('mafia', v.data.buckets[0].key);
+      assert.equal(3, v.data.buckets[0].doc_count);
+      assert.equal(5, v.pagination.per_page);
+      assert.equal(30, v.pagination.total);
+    });
+
+    it('should make single facet query on movies with filters', async function() {
+
+      var v = await elasticitems.aggregation({
+        name: 'tags',
+        filters: {
+          tags: ['mafia'],
+          genres: ['Biography']
+        },
+        size: 30,
+        per_page: 5
       })
+
+      assert.equal('mafia', v.data.buckets[2].key);
+      assert.equal(1, v.data.buckets[2].doc_count);
+      assert.equal(5, v.data.buckets.length);
+      assert.equal(5, v.pagination.per_page);
+      assert.equal(5, v.pagination.total);
+    });
+
+    it('should make single facet query on movies with search query', async function() {
+
+      var v = await elasticitems.aggregation({
+        name: 'tags',
+        query: 'biography',
+        filters: {
+          tags: ['mafia'],
+        },
+        size: 30,
+        per_page: 5
+      })
+
+      assert.equal('mafia', v.data.buckets[2].key);
+      assert.equal(1, v.data.buckets[2].doc_count);
+      assert.equal(5, v.data.buckets.length);
+      assert.equal(5, v.pagination.per_page);
+      assert.equal(5, v.pagination.total);
+    });
+
+    it('should make single facet query on movies with search query_string', async function() {
+
+      var v = await elasticitems.aggregation({
+        name: 'tags',
+        query_string: 'biography AND mafia',
+        filters: {
+          tags: ['mafia'],
+        },
+        size: 30,
+        per_page: 5
+      })
+
+      assert.equal('mafia', v.data.buckets[2].key);
+      assert.equal(1, v.data.buckets[2].doc_count);
+      assert.equal(5, v.data.buckets.length);
+      assert.equal(5, v.pagination.per_page);
+      assert.equal(5, v.pagination.total);
     });
 
     it('should make single facet query on movies with aggregation_query', function(done) {
@@ -258,7 +307,8 @@ describe('should search movies', function() {
         sort: '_term'
       })
       .then(v => {
-        assert.equal('action', v.data.buckets[0].key);
+        assert.equal(6, v.data.buckets[0].doc_count);
+        assert.equal('Action', v.data.buckets[0].key);
         done();
       })
     });

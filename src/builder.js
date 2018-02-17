@@ -203,7 +203,6 @@ exports.generateSort = function(sortOptions, input) {
       return sortOptions.sort
     }
 
-
     if (!sortOptions.type || sortOptions.type === 'normal') {
     } else if (sortOptions.type === 'geo') {
       sort.geoDistance(ejs.GeoPoint(input.geoPoint)).unit('km')
@@ -321,7 +320,6 @@ exports.generateAggregationFilters = function(aggregations, data) {
   var aggregation_filters = {};
 
   _.each(aggregations, function(value, key) {
-
 
     if (1 || value.length) {
       var aggregation = aggregations[key];

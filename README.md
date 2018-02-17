@@ -79,7 +79,13 @@ It returns full list of filters for specific aggregation
 
   * **<code>order</code>** responsible for an order. It can be `asc` or `desc`
 
+  * **<code>filters</code>** filter this aggregation through another aggregations (facets)
+
   * **<code>aggregation_query</code>** used for quering filters. It's not full text search
+
+  * **<code>query</code>** search through items
+
+  * **<code>query_string</code>** search through items by query string i.e. (category:Garden and color:red)
   
 ### elasticitems.get(id)
 
