@@ -35,3 +35,10 @@ jspm_packages
 
 # Optional REPL history
 .node_repl_history
+collection.json
+collection_e.json
+query.json
+s.js
+test.js
+test.json
+

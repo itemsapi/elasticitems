@@ -1,6 +1,6 @@
 {
   "name": "elasticitems",
-  "version": "1.0.13",
+  "version": "1.0.14",
   "description": "High level client for Elasticsearch written in Node.js oriented on facets",
   "main": "index.js",
   "scripts": {
