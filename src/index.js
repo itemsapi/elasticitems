@@ -158,6 +158,12 @@ module.exports = function elasticitems(elastic_config, search_config) {
         })
       }
 
+      if (input.not_filters) {
+        _.keys(input.not_filters).forEach(key => {
+          local_search_config.aggregations[key] = search_config.aggregations[key];
+        })
+      }
+
       return search(input, local_search_config)
       .then(function(result) {
         return searchHelper.facetsConverter(input, local_search_config, result);

@@ -218,6 +218,23 @@ describe('should search movies', function() {
       assert.equal(5, v.pagination.total);
     });
 
+    it('should make single facet query on movies with not filters', async function() {
+
+      var v = await elasticitems.aggregation({
+        name: 'tags',
+        filters: {
+          tags: ['mafia'],
+        },
+        not_filters: {
+          genres: ['Biography']
+        },
+        size: 30,
+        per_page: 5
+      })
+
+      assert.equal(9, v.pagination.total);
+    });
+
     it('should make single facet query on movies with search query', async function() {
 
       var v = await elasticitems.aggregation({
