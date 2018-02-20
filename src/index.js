@@ -149,20 +149,15 @@ module.exports = function elasticitems(elastic_config, search_config) {
       }
 
       if (input.filters && _.isString(input.filters)) {
-        input.filters = JSON.parse(input.filters)
+        input.filters = JSON.parse(input.filters);
       }
 
-      if (input.filters) {
-        _.keys(input.filters).forEach(key => {
-          local_search_config.aggregations[key] = search_config.aggregations[key];
-        })
-      }
-
-      if (input.not_filters) {
-        _.keys(input.not_filters).forEach(key => {
-          local_search_config.aggregations[key] = search_config.aggregations[key];
-        })
-      }
+      _.concat(_.keys(input.filters), _.keys(input.not_filters)).forEach(k => {
+        // don't override already configured aggregation. only the rest
+        if (k !== key) {
+          local_search_config.aggregations[k] = search_config.aggregations[k];
+        }
+      })
 
       return search(input, local_search_config)
       .then(function(result) {
