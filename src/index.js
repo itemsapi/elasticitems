@@ -216,12 +216,15 @@ module.exports = function elasticitems(elastic_config, search_config) {
     /**
      * delete specific item
      */
-    delete: function(id) {
+    delete: function(id, options) {
+
+      options = options || {};
 
       return client.delete({
         index: elastic_config.index,
         type: elastic_config.type,
-        id: id
+        id: id,
+        refresh: options.refresh || false
       })
     },
 
