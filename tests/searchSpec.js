@@ -45,30 +45,37 @@ describe('should search movies', function() {
 
   describe('should search movies', function() {
 
-    it('makes a simple search', function(done) {
+    it('makes a simple search', async function() {
 
-      elasticitems.search()
-      .then(v => {
-        //console.log(v.data.items);
-        assert.equal(20, v.pagination.total)
-        assert.equal(16, v.pagination.per_page)
-        assert.equal(1, v.pagination.page)
-        assert.equal(16, v.data.items.length)
+      var v = await elasticitems.search()
+      //console.log(v.data.items);
+      assert.equal(20, v.pagination.total)
+      assert.equal(16, v.pagination.per_page)
+      assert.equal(1, v.pagination.page)
+      assert.equal(16, v.data.items.length)
 
-        //console.log(v.data.items[0]);
-        assert.equal(undefined, v.data.items[0].score)
+      //console.log(v.data.items[0]);
+      assert.equal(undefined, v.data.items[0].score)
 
-        //console.log(v.data.aggregations.rating);
-        assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count)
-        assert.equal('8 - 9', v.data.aggregations.rating.buckets[0].key)
-        assert.equal(4, v.data.aggregations.rating.buckets[1].doc_count)
-        //assert.equal(undefined, v.data.aggregations.tags.doc_count)
-        assert.equal(92, v.data.aggregations.tags.buckets.length)
-        assert.equal('Tags', v.data.aggregations.tags.title)
-        assert.equal(262, v.data.aggregations.actors.buckets.length)
-        assert.equal(262, v.data.aggregations.actors_or.buckets.length)
-        done();
+      //console.log(v.data.aggregations.rating);
+      assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count)
+      assert.equal('8 - 9', v.data.aggregations.rating.buckets[0].key)
+      assert.equal(4, v.data.aggregations.rating.buckets[1].doc_count)
+      //assert.equal(undefined, v.data.aggregations.tags.doc_count)
+      assert.equal(92, v.data.aggregations.tags.buckets.length)
+      assert.equal('Tags', v.data.aggregations.tags.title)
+      assert.equal(262, v.data.aggregations.actors.buckets.length)
+      assert.equal(262, v.data.aggregations.actors_or.buckets.length)
+    });
+
+    it('should search with query_string', async function() {
+
+      var v = await elasticitems.search({
+        query_string: 'rating:<=9.3 AND rating:>=9.3'
       })
+
+      assert.equal(1, v.pagination.total)
+      assert.equal('The Shawshank Redemption', v.data.items[0].name)
     });
 
     it('makes a simple sort', function(done) {
