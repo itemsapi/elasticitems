@@ -139,6 +139,10 @@ module.exports = function elasticitems(elastic_config, search_config) {
       facet_config.sort = input.sort;
       facet_config.order = input.order;
 
+      if (input.conjunction !== undefined) {
+        facet_config.conjunction = input.conjunction;
+      }
+
       var key = input.name || input.field;
 
       // creating new lean search config only for single facet purpose
