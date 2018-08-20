@@ -47,21 +47,36 @@ exports.searchBuilder = function(data, collection) {
     body.aggregation(value);
   });
 
+  var fulltextQuery = ejs.MultiMatchQuery(
+    data.fields || '_all',
+    data.query
+  )
+
+  fulltextQuery.operator(data.operator || 'or');
+
+  //fulltextQuery.fuzziness(data.fuzziness);
+
   if (data.key && data.val) {
     body.query(ejs.TermQuery(data.key, data.val));
   } else if (data.query_string && data.query) {
-    var query_mix = '(' + data.query_string + ') AND "' + data.query + '"'
+    //var query_mix = '(' + data.query_string + ') AND "' + data.query + '"'
+
+    var boolquery = ejs.BoolQuery()
+    .must(fulltextQuery)
+    .must(ejs.QueryStringQuery(
+      data.query_string
+    ))
+
     body.query(
-      ejs.QueryStringQuery(
-        query_mix
-      )
+      boolquery
     )
   } else if (data.query_string) {
     // i.e. 'actor:Pacino AND genre:Dram*'
     body.query(ejs.QueryStringQuery(data.query_string));
   } else if (data.query) {
     // i.e. 'Al Pacino'
-    body.query(ejs.QueryStringQuery('"' + data.query + '"'));
+    //body.query(ejs.QueryStringQuery('"' + data.query + '"'));
+    body.query(fulltextQuery);
   }
 
   //log.debug(JSON.stringify(body.toJSON(), null, 2));

@@ -68,6 +68,75 @@ describe('should search movies', function() {
       assert.equal(262, v.data.aggregations.actors_or.buckets.length)
     });
 
+    it('should makes a full text search', async function() {
+
+      var v = await elasticitems.search({
+        query_string: 'rating:<=9.3 AND rating:>=9.3',
+        query: 'redemption shawshank'
+      })
+
+      assert.equal(1, v.pagination.total)
+      assert.equal('The Shawshank Redemption', v.data.items[0].name)
+    });
+
+    xit('should makes a full text search with fuziness', async function() {
+
+      var v = await elasticitems.search({
+        query_string: 'rating:<=9.3 AND rating:>=9.3',
+        operator: 'and',
+        query: 'imprisoned numbers',
+        fuziness: 1.0,
+        fields: ['description']
+      })
+
+      assert.equal(1, v.pagination.total)
+    });
+
+    it('should makes a full text search over specific fields', async function() {
+
+      var v = await elasticitems.search({
+        query_string: 'rating:<=9.3 AND rating:>=9.3',
+        query: 'imprisoned number years',
+        fields: ['description']
+      })
+
+      assert.equal(1, v.pagination.total)
+
+      var v = await elasticitems.search({
+        query_string: 'rating:<=9.3 AND rating:>=9.3',
+        query: 'imprisoned number years',
+        fields: ['name', 'description']
+      })
+
+      assert.equal(1, v.pagination.total)
+
+      var v = await elasticitems.search({
+        query_string: 'rating:<=9.3 AND rating:>=9.3',
+        query: 'imprisoned number years',
+        fields: ['name']
+      })
+
+      assert.equal(0, v.pagination.total)
+    });
+
+    it('should makes a full text search with and | or operator', async function() {
+
+      var v = await elasticitems.search({
+        query_string: 'rating:<=9.3 AND rating:>=9.3',
+        query: 'redemption shawshank wordword'
+      })
+
+      assert.equal(1, v.pagination.total)
+
+      var v = await elasticitems.search({
+        query_string: 'rating:<=9.3 AND rating:>=9.3',
+        operator: 'and',
+        query: 'redemption shawshank wordword'
+      })
+
+      assert.equal(0, v.pagination.total)
+    });
+
     it('should search with query_string', async function() {
 
       var v = await elasticitems.search({

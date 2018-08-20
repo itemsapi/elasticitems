@@ -49,11 +49,15 @@ Responsible for defining global configuration.
 
   * **<code>query</code>** used for full text search.
 
+  * **<code>operator</code>** search operator `and` and `or` (default). It works with `query` parameter
+
   * **<code>sort</code>** used for sorting. one of `sortings` key
   
   * **<code>filters</code>** filtering items based on specific aggregations i.e. {tags: ['drama' , 'historical']}  
 
   * **<code>query_string</code>** i.e. "brand:Audi OR brand:Mercedes"
+
+  * **<code>fields</code>** search only in specifc fields i.e. ['name', 'description']. Missing parameter means search in all fields
 
 ### elasticitems.similar(id, options)
 
