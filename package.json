@@ -1,10 +1,10 @@
 {
   "name": "elasticitems",
-  "version": "1.0.18",
+  "version": "1.0.19",
   "description": "High level client for Elasticsearch written in Node.js oriented on facets",
   "main": "index.js",
   "scripts": {
-    "test": "mocha tests/*"
+    "test": "mocha -b 8000 tests/*"
   },
   "repository": {
     "type": "git",

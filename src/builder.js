@@ -58,25 +58,39 @@ exports.searchBuilder = function(data, collection) {
 
   if (data.key && data.val) {
     body.query(ejs.TermQuery(data.key, data.val));
-  } else if (data.query_string && data.query) {
+  //} else if (data.query_string && data.query) {
+  } else {
     //var query_mix = '(' + data.query_string + ') AND "' + data.query + '"'
 
     var boolquery = ejs.BoolQuery()
-    .must(fulltextQuery)
-    .must(ejs.QueryStringQuery(
-      data.query_string
-    ))
+
+    if (data.query) {
+      // i.e. 'Al Pacino'
+      boolquery.must(fulltextQuery)
+    }
+
+    if (data.query_string) {
+      // i.e. 'actor:Pacino AND genre:Dram*'
+      boolquery.must(ejs.QueryStringQuery(
+        data.query_string
+      ))
+    }
+
+    if (data.ids && Array.isArray(data.ids)) {
+      boolquery.must(ejs.IdsQuery(
+        data.ids
+      ))
+    }
+
+    if (data.exclude_ids && Array.isArray(data.exclude_ids)) {
+      boolquery.mustNot(ejs.IdsQuery(
+        data.exclude_ids
+      ))
+    }
 
     body.query(
       boolquery
     )
-  } else if (data.query_string) {
-    // i.e. 'actor:Pacino AND genre:Dram*'
-    body.query(ejs.QueryStringQuery(data.query_string));
-  } else if (data.query) {
-    // i.e. 'Al Pacino'
-    //body.query(ejs.QueryStringQuery('"' + data.query + '"'));
-    body.query(fulltextQuery);
   }
 
   //log.debug(JSON.stringify(body.toJSON(), null, 2));

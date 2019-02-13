@@ -59,6 +59,10 @@ Responsible for defining global configuration.
 
   * **<code>fields</code>** search only in specifc fields i.e. ['name', 'description']. Missing parameter means search in all fields
 
+  * **<code>ids</code>** search by ids i.e. ['1', '2', '3']
+
+  * **<code>exclude_ids</code>** exclude ids from search i.e. ['1', '2', '3']
+
 ### elasticitems.similar(id, options)
 
 Show similar items based on collaborative filtering
@@ -112,3 +116,10 @@ Updates object in index
 ### elasticitems.delete(id)
 
 Delete object from index
+
+
+## Tests
+
+```
+npm test
+```
