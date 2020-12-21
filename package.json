@@ -18,13 +18,15 @@
   "homepage": "https://github.com/itemsapi/elasticitems#readme",
   "dependencies": {
     "bluebird": "^3.5.0",
+    "bodybuilder": "^2.2.25",
     "elastic.js": "^1.2.0",
-    "elasticsearch": "^13.3.1",
-    "lodash": "^4.17.4",
+    "elasticsearch": "^16.7.2",
+    "es7": "npm:@elastic/elasticsearch@^7.10.0",
+    "lodash": "^4.17.20",
     "slug": "^0.9.1"
   },
   "devDependencies": {
-    "elasticbulk": "^1.0.2",
+    "elasticbulk": "^1.0.24",
     "mocha": "^4.0.1",
     "should": "^13.1.2",
     "sinon": "^3.3.0"

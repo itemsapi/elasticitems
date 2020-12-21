@@ -19,13 +19,25 @@ var mergeInternalAggregations = function(aggregations) {
   return aggregations
 }
 
-var getAggregationsResponse = function(collection_aggregations, result_aggregations) {
+var getAggregationsResponse = function(collection_aggs, result_aggs) {
 
-  //console.log(collection_aggregations);
-  //console.log(result_aggregations);
+  for (const [key, value] of Object.entries(result_aggs.global)) {
+    if (value && value.meta && value[key]) {
+      result_aggs[key] = value[key];
+    }
+  }
+
+  //delete result_aggs.global;
+  delete result_aggs.global;
+  //console.log('error');
+  //console.log(collection_aggs);
+  //console.log(result_aggs);
+
+
+
   // object response
-  return _.extend(_.clone(result_aggregations), _.mapValues(result_aggregations, function(v, k) {
-    // supports filters in aggregations
+  return _.extend(_.clone(result_aggs), _.mapValues(result_aggs, function(v, k) {
+    // supports filters in aggs
     if (!v.buckets && v[k]) {
       _.extend(v, v[k]);
       delete v[k];
@@ -38,20 +50,21 @@ var getAggregationsResponse = function(collection_aggregations, result_aggregati
     ])
 
     return _.extend(v, {
-      title: collection_aggregations[k].title || k,
+      title: collection_aggs[k].title || k,
       name: k,
-      position: parseInt(collection_aggregations[k].position || 0, 10),
-      size: parseInt(collection_aggregations[k].size, 10),
-      type: collection_aggregations[k].type
+      position: parseInt(collection_aggs[k].position || 0, 10),
+      size: parseInt(collection_aggs[k].size, 10),
+      type: collection_aggs[k].type
     });
   }))
-
 }
 
-var getAggregationsFacetsResponse = function(collection_aggregations, result_aggregations) {
-  var aggregations = getAggregationsResponse(collection_aggregations, result_aggregations);
+var getAggregationsFacetsResponse = function(collection_aggs, result_aggs) {
+  var aggs = getAggregationsResponse(collection_aggs, result_aggs);
 
-  aggregations = _.chain(aggregations)
+  console.log(aggs);
+
+  aggs = _.chain(aggs)
   .filter({type: 'terms'})
   .map(function(val) {
     //console.log(val);
@@ -59,14 +72,14 @@ var getAggregationsFacetsResponse = function(collection_aggregations, result_agg
   })
   .map(function(val) {
     val.buckets = _.map(val.buckets, function(val2) {
-      val2.permalink = slug(val2.key, {lower: true});
+      //val2.permalink = slug(val2.key, {lower: true});
       return val2;
     })
     return val;
   })
   .value();
 
-  return aggregations;
+  return aggs;
 }
 
 var facetsConverter = function(input, collection, result) {
@@ -82,37 +95,37 @@ var searchConverter = function(input, collection, data) {
 
   var items = _.map(data.hits.hits, function(doc) {
     return _.extend(
-      //{id: doc._id, score: doc._score},
-      {id: doc._id},
+      {id: doc.id},
       doc._source, doc.fields
     );
   })
 
-  var sortings = _.mapValues(helper.getSortings(), function(v, k) {
+  //console.log(items);
+
+  /*var sortings = _.mapValues(helper.getSortings(), function(v, k) {
     return {
       name: k,
       order: v.order,
       title: v.title
     };
-  })
+  })*/
 
   return {
     meta: {
       query: input.query,
-      sort: helper.getChosenSortingKey(input.sort) || ''
+      //sort: helper.getChosenSortingKey(input.sort) || ''
     },
     pagination: {
       page: parseInt(input.page) || 1,
       per_page: parseInt(input.per_page) || 16,
-      total: data.hits.total
+      total: data.hits.total.value
     },
     data: {
       items: items,
       aggregations: getAggregationsResponse(
         helper.getAggregations(),
         data.aggregations
-      ),
-      //sortings: sortings
+      )
     }
   }
 }

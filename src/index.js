@@ -4,6 +4,7 @@ const searchHelper = require('./helpers/search');
 const Promise = require('bluebird');
 const _ = require('lodash');
 const ejs = require('elastic.js');
+const bodybuilder = require('bodybuilder')
 
 module.exports = function elasticitems(elastic_config, search_config) {
 
@@ -23,20 +24,30 @@ module.exports = function elasticitems(elastic_config, search_config) {
    * sort
    * filters
    */
-  var search = function(input, local_search_config) {
+  var search = async function(input, local_search_config) {
     input = input || {};
     input.per_page = input.per_page || 16;
 
-    var body = builder.searchBuilder(input, local_search_config || search_config)
+    console.log('start');
 
-    return client.search({
+    var body = builder.searchBuilder(input, search_config)
+
+    //console.log(body.build());
+    console.log(JSON.stringify(body.build(), null, 2));
+
+    var result = await client.search({
       index: input.index || elastic_config.index,
-      type: input.type || elastic_config.type,
-      body: body
+      //type: input.type || elastic_config.type,
+      body: body.build()
     })
-    .then(result => {
-      return searchHelper.searchConverter(input, local_search_config || search_config, result);
-    })
+
+    //console.log(JSON.stringify(result.aggregations, null, 2));
+
+    var output = searchHelper.searchConverter(input, local_search_config || search_config, result);
+
+    //console.log(output.data.aggregations);
+
+    return output;
   }
 
   var getBy = function(key, value) {

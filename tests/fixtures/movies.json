@@ -1,6 +1,6 @@
 [
     {
-        "_id": "1",
+        "id": "1",
         "name": "The Shawshank Redemption",
         "year": 1994,
         "rating": 9.3,
@@ -45,7 +45,7 @@
         "reviews_count": 4446
     },
     {
-        "_id": "2",
+        "id": "2",
         "name": "The Godfather",
         "year": 1972,
         "rating": 9.2,
@@ -90,6 +90,7 @@
         "reviews_count": 2368
     },
     {
+        "id": "3",
         "name": "The Dark Knight",
         "year": 2008,
         "rating": 9,
@@ -137,6 +138,7 @@
         "reviews_count": 4845
     },
     {
+        "id": "4",
         "name": "The Godfather: Part II",
         "year": 1974,
         "rating": 9,
@@ -181,6 +183,7 @@
         "reviews_count": 672
     },
     {
+        "id": "5",
         "name": "Pulp Fiction",
         "year": 1994,
         "rating": 8.9,
@@ -225,6 +228,7 @@
         "reviews_count": 2270
     },
     {
+        "id": "6",
         "name": "Schindler's List",
         "year": 1993,
         "rating": 8.9,
@@ -270,6 +274,7 @@
         "reviews_count": 1316
     },
     {
+        "id": "7",
         "name": "The Lord of the Rings: The Return of the King",
         "year": 2003,
         "rating": 8.9,
@@ -316,6 +321,7 @@
         "reviews_count": 3223
     },
     {
+        "id": "8",
         "name": "12 Angry Men",
         "year": 1957,
         "rating": 8.9,
@@ -357,6 +363,7 @@
         "reviews_count": 973
     },
     {
+        "id": "9",
         "name": "The Good, the Bad and the Ugly",
         "year": 1966,
         "rating": 8.9,
@@ -403,6 +410,7 @@
         "reviews_count": 808
     },
     {
+        "id": "10",
         "name": "Dangal",
         "year": 2016,
         "rating": 8.9,
@@ -449,6 +457,7 @@
         "reviews_count": 203
     },
     {
+        "id": "11",
         "name": "Inception",
         "year": 2010,
         "rating": 8.8,
@@ -496,6 +505,7 @@
         "reviews_count": 2867
     },
     {
+        "id": "12",
         "name": "The Lord of the Rings: The Fellowship of the Ring",
         "year": 2001,
         "rating": 8.8,
@@ -542,6 +552,7 @@
         "reviews_count": 5082
     },
     {
+        "id": "13",
         "name": "Forrest Gump",
         "year": 1994,
         "rating": 8.8,
@@ -587,6 +598,7 @@
         "reviews_count": 1470
     },
     {
+        "id": "14",
         "name": "Fight Club",
         "year": 1999,
         "rating": 8.8,
@@ -631,6 +643,7 @@
         "reviews_count": 3026
     },
     {
+        "id": "15",
         "name": "Star Wars: Episode V - The Empire Strikes Back",
         "year": 1980,
         "rating": 8.8,
@@ -677,6 +690,7 @@
         "reviews_count": 921
     },
     {
+        "id": "16",
         "name": "The Matrix",
         "year": 1999,
         "rating": 8.7,
@@ -722,6 +736,7 @@
         "reviews_count": 3693
     },
     {
+        "id": "17",
         "name": "Star Wars: Episode IV - A New Hope",
         "year": 1977,
         "rating": 8.7,
@@ -768,6 +783,7 @@
         "reviews_count": 1500
     },
     {
+        "id": "18",
         "name": "Goodfellas",
         "year": 1990,
         "rating": 8.7,
@@ -813,6 +829,7 @@
         "reviews_count": 1016
     },
     {
+        "id": "19",
         "name": "One Flew Over the Cuckoo's Nest",
         "year": 1975,
         "rating": 8.7,
@@ -856,6 +873,7 @@
         "reviews_count": 778
     },
     {
+        "id": "20",
         "name": "The Lord of the Rings: The Two Towers",
         "year": 2002,
         "rating": 8.7,

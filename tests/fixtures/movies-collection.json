@@ -1,22 +1,23 @@
 {
   "schema": {
     "tags": {
-      "type": "string",
-      "index": "not_analyzed",
+      "type": "keyword",
       "store": true
     },
     "genres": {
-      "type": "string",
-      "index": "not_analyzed",
+      "type": "keyword",
       "store": true
+    },
+    "name": {
+      "type": "text",
+      "fielddata": true
     },
     "rating": {
       "type": "float",
       "store": true
     },
     "actors": {
-      "type": "string",
-      "index": "not_analyzed",
+      "type": "keyword",
       "store": true
     }
   },
@@ -42,35 +43,12 @@
       "size": 1000,
       "title": "Tags OR"
     },
-    "empty_tags": {
-      "position": 80,
-      "field": "tags",
-      "size": 15,
-      "type": "is_empty"
-    },
     "actors": {
       "type": "terms",
       "field": "actors",
       "conjunction": true,
       "size": 1000,
       "title": "Actors"
-    },
-    "rating": {
-      "ranges": [
-        {
-          "name": "8 - 9",
-          "gte": 8,
-          "lte": 9
-        },
-        {
-          "name": "< 10",
-          "gte": 9,
-          "lte": 10
-        }
-      ],
-      "conjunction": true,
-      "field": "rating",
-      "type": "range"
     },
     "actors_or": {
       "type": "terms",
