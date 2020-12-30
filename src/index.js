@@ -1,7 +1,5 @@
 const builder = require('./builder');
-const elasticsearch = require('elasticsearch');
 const searchHelper = require('./helpers/search');
-const Promise = require('bluebird');
 const _ = require('lodash');
 const bodybuilder = require('bodybuilder');
 
@@ -9,11 +7,12 @@ module.exports = function elasticitems(elastic_config, search_config) {
 
   search_config = search_config || {};
 
-  const client = new elasticsearch.Client({
-    host: elastic_config.host,
-    defer: function () {
-      return Promise.defer();
-    }
+  const { Client } = require('@elastic/elasticsearch');
+  const client = new Client({
+    node: elastic_config.host
+    //defer: function () {
+    //return Promise.defer();
+    //}
   });
 
   /**
@@ -28,45 +27,42 @@ module.exports = function elasticitems(elastic_config, search_config) {
     input.per_page = input.per_page || 16;
 
 
-    const body = builder.searchBuilder(input, local_search_config ||  search_config);
+    const qb = builder.searchBuilder(input, local_search_config ||  search_config);
 
     //console.log('start');
     //console.log(body.build());
     //console.log(JSON.stringify(body.build(), null, 2));
 
-    const result = await client.search({
+    const { body } = await client.search({
       index: input.index || elastic_config.index,
       //type: input.type || elastic_config.type,
-      body: body.build()
+      body: qb.build()
     });
 
     //console.log(JSON.stringify(result.aggregations, null, 2));
 
-    const output = searchHelper.searchConverter(input, local_search_config || search_config, result);
-
-    //console.log(output.data.aggregations);
+    const output = searchHelper.searchConverter(input, local_search_config || search_config, body);
 
     return output;
   };
 
-  const getBy = function(key, value) {
+  const getBy = async function(key, value) {
 
     const qb = bodybuilder().size(5).query('term', key, {
       value: value,
     });
 
-    return client.search({
+    const { body } = await client.search({
       index: elastic_config.index,
       body: qb.build(),
       _source: true
-    })
-      .then(function(res) {
-        let result = res.hits.hits;
-        result = result.length ? _.extend({
-          id: result[0]._id
-        }, result[0]._source) : null;
-        return result;
-      });
+    });
+
+    let result = body.hits.hits;
+    result = result.length ? _.extend({
+      id: result[0]._id
+    }, result[0]._source) : null;
+    return result;
   };
 
   const similar = function(id, input) {
@@ -198,62 +194,68 @@ module.exports = function elasticitems(elastic_config, search_config) {
       return output;
     },
 
-    partialUpdate: function(id, data, options) {
+    partialUpdate: async function(id, data, options) {
 
       options = options || {};
 
-      return client.update({
+      const { body } = await client.update({
         index: elastic_config.index,
-        //type: elastic_config.type,
         id: id,
         refresh: options.refresh || false,
         body: {doc: data}
       });
+
+      return body;
     },
 
     /**
      * add specific item
      */
-    add: function(data, options) {
+    add: async function(data, options) {
 
       options = options || {};
 
-      return client.index({
+      const result = await client.index({
         index: elastic_config.index,
         id: data.id,
         refresh: options.refresh || false,
         body: data
       });
+
+      return result.body;
     },
 
     /**
      * delete specific item
      */
-    delete: function(id, options) {
+    delete: async function(id, options) {
 
       options = options || {};
 
-      return client.delete({
+      const { body } = await client.delete({
         index: elastic_config.index,
         id: id,
         refresh: options.refresh || false
       });
+
+      return body;
     },
 
     /**
      * find specific item
      */
-    get: function(id) {
-      return client.get({
+    get: async function(id) {
+      const { body } = await client.get({
         index: elastic_config.index,
-        //type: elastic_config.type,
         id: id
-      })
-        .then(result => {
-          return result._source;
-        });
+      });
+
+      return body._source;
     },
+
     getBy: getBy,
-    similar: similar,
+
+    similar: similar
+
   };
 };

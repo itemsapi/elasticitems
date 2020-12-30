@@ -1,25 +1,24 @@
 'use strict';
-var _ = require('lodash');
-var collectionHelper = require('./collection');
-var slug = require('slug')
+const _ = require('lodash');
+const collectionHelper = require('./collection');
 
-var mergeInternalAggregations = function(aggregations) {
+const mergeInternalAggregations = function(aggregations) {
   _.forEach(_.keys(aggregations), function(key) {
-    var index = key.indexOf('_internal_count')
+    const index = key.indexOf('_internal_count');
     if (index !== -1) {
-      var found_key = key.split('_internal_count')[0]
+      const found_key = key.split('_internal_count')[0];
 
       if (aggregations[found_key] && aggregations[key]['value']) {
-        aggregations[found_key]['total'] = aggregations[key]['value']
+        aggregations[found_key]['total'] = aggregations[key]['value'];
       }
-      delete aggregations[key]
+      delete aggregations[key];
     }
-  })
+  });
 
-  return aggregations
-}
+  return aggregations;
+};
 
-var getAggregationsResponse = function(collection_aggs, result_aggs) {
+const getAggregationsResponse = function(collection_aggs, result_aggs) {
 
   //console.log(result_aggs);
   //console.log(result_aggs.global);
@@ -53,7 +52,7 @@ var getAggregationsResponse = function(collection_aggs, result_aggs) {
       'sum_other_doc_count',
       'doc_count_error_upper_bound',
       //'doc_count'
-    ])
+    ]);
 
     //console.log('ca');
     //console.log(collection_aggs);
@@ -66,47 +65,46 @@ var getAggregationsResponse = function(collection_aggs, result_aggs) {
       size: parseInt(collection_aggs[k].size, 10),
       type: collection_aggs[k].type
     });
-  }))
-}
+  }));
+};
 
-var getAggregationsFacetsResponse = function(collection_aggs, result_aggs) {
-  var aggs = getAggregationsResponse(collection_aggs, result_aggs);
+const getAggregationsFacetsResponse = function(collection_aggs, result_aggs) {
+  let aggs = getAggregationsResponse(collection_aggs, result_aggs);
 
   aggs = _.chain(aggs)
-  .filter({type: 'terms'})
-  .map(function(val) {
+    .filter({type: 'terms'})
+    .map(function(val) {
     //console.log(val);
-    return _.omit(val, ['sum_other_doc_count', 'doc_count_error_upper_bound'])
-  })
-  .map(function(val) {
-    val.buckets = _.map(val.buckets, function(val2) {
-      //val2.permalink = slug(val2.key, {lower: true});
-      return val2;
+      return _.omit(val, ['sum_other_doc_count', 'doc_count_error_upper_bound']);
     })
-    return val;
-  })
-  .value();
+    .map(function(val) {
+      val.buckets = _.map(val.buckets, function(val2) {
+        return val2;
+      });
+      return val;
+    })
+    .value();
 
   return aggs;
-}
+};
 
-var facetsConverter = function(input, collection, result) {
-  var helper = collectionHelper(collection);
+const facetsConverter = function(input, collection, result) {
+  const helper = collectionHelper(collection);
   return getAggregationsFacetsResponse(
     helper.getAggregations(),
     result.data.aggregations
-  )
-}
+  );
+};
 
-var searchConverter = function(input, collection, data) {
-  var helper = collectionHelper(collection);
+const searchConverter = function(input, collection, data) {
+  const helper = collectionHelper(collection);
 
-  var items = _.map(data.hits.hits, function(doc) {
+  const items = _.map(data.hits.hits, function(doc) {
     return _.extend(
       {id: doc.id},
       doc._source, doc.fields
     );
-  })
+  });
 
   //console.log(items);
 
@@ -135,11 +133,13 @@ var searchConverter = function(input, collection, data) {
         data.aggregations
       )
     }
-  }
-}
+  };
+};
 
-var similarConverter = function(input, data) {
-  var helper = collectionHelper(input.collection);
+const similarConverter = function(input, data) {
+
+  //const helper = collectionHelper(input.collection);
+
   return {
     meta: {
       query: input.query,
@@ -158,32 +158,32 @@ var similarConverter = function(input, data) {
         );
       })
     }
-  }
-}
+  };
+};
 
-var processFacet = function(input, facet) {
+const processFacet = function(input, facet) {
 
-  var offset = input.per_page * (input.page - 1)
+  const offset = input.per_page * (input.page - 1);
 
   facet.data = {
     buckets: _.chain(facet.buckets)
-    .filter(v => {
-      if (input.aggregation_query) {
+      .filter(v => {
+        if (input.aggregation_query) {
 
-        return v.key.toLowerCase().indexOf(
-          input.aggregation_query.toLowerCase()
-        ) === 0
-      }
-      return true
-    })
-    .value()
-  }
+          return v.key.toLowerCase().indexOf(
+            input.aggregation_query.toLowerCase()
+          ) === 0;
+        }
+        return true;
+      })
+      .value()
+  };
 
   facet.pagination = {
     page: parseInt(input.page) || 1,
     per_page: parseInt(input.per_page) || 16,
     total: parseInt(facet.data.buckets.length)
-  }
+  };
 
   facet.data.buckets = facet.data.buckets.slice(offset, offset + input.per_page);
 
@@ -195,9 +195,9 @@ var processFacet = function(input, facet) {
     'type',
     'buckets',
     'position'
-  ])
-  return facet
-}
+  ]);
+  return facet;
+};
 
 module.exports = {
   getAggregationsResponse: getAggregationsResponse,
@@ -206,5 +206,5 @@ module.exports = {
   processFacet: processFacet,
   facetsConverter: facetsConverter,
   similarConverter: similarConverter
-}
+};
 
