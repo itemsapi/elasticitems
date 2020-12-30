@@ -1,44 +1,44 @@
 'use strict';
 
-var ejs = require('elastic.js');
-var collectionHelper = require('./helpers/collection');
-var geoHelper = require('./helpers/geo');
-var bodybuilder = require('bodybuilder')
-var _ = require('lodash');
+//const ejs = require('elastic.js');
+//const collectionHelper = require('./helpers/collection');
+//const geoHelper = require('./helpers/geo');
+const bodybuilder = require('bodybuilder');
+//const _ = require('lodash');
 
 /**
  * ItemsAPI search builder
  */
 exports.searchBuilder = function(query, config) {
-  var page = query.page || 1;
-  var per_page = query.per_page || 10;
-  var offset = (page - 1) * per_page;
-  var aggs = config.aggregations;
-  var sortings = config.sortings;
+  const page = query.page || 1;
+  const per_page = query.per_page || 10;
+  const offset = (page - 1) * per_page;
+  const aggs = config.aggregations;
+  const sortings = config.sortings;
 
   query = query || {};
 
-  var filters = query.filters || {};
-  var not_filters = query.not_filters || {};
+  const filters = query.filters || {};
+  const not_filters = query.not_filters || {};
 
 
-  for (const [key, value] of Object.entries(aggs)) {
+  for (const [, value] of Object.entries(aggs)) {
 
     if (!value.field) {
       throw new Error('field is missing');
     }
   }
 
-  var qb = bodybuilder();
+  const qb = bodybuilder();
 
 
-  qb.size(per_page)
+  qb.size(per_page);
   qb.from(offset);
 
   if (query.sort && sortings && sortings[query.sort]) {
 
-    var field = sortings[query.sort].field;
-    var order = sortings[query.sort].order;
+    const field = sortings[query.sort].field;
+    const order = sortings[query.sort].order;
 
     qb.sort(field, order);
   }
@@ -52,19 +52,19 @@ exports.searchBuilder = function(query, config) {
       fields: query.fields,
       // @TODO rename to query_operator
       operator: query.operator
-    })
+    });
   }
 
   if (query.query_string) {
-    qb.query('query_string', { query: query.query_string })
+    qb.query('query_string', { query: query.query_string });
   }
 
   if (query.ids && Array.isArray(query.ids)) {
-    qb.query('ids', { values: query.ids })
+    qb.query('ids', { values: query.ids });
   }
 
   if (query.exclude_ids && Array.isArray(query.exclude_ids)) {
-    qb.notQuery('ids', { values: query.exclude_ids })
+    qb.notQuery('ids', { values: query.exclude_ids });
   }
 
 
@@ -100,20 +100,20 @@ exports.searchBuilder = function(query, config) {
 
     if (value.conjunction !== false) {
 
-      var options = {
+      const options = {
         size: value.size
-      }
+      };
 
       if (value.sort) {
 
-        var sort = value.sort === '_term' ? '_key' : value.sort;
+        const sort = value.sort === '_term' ? '_key' : value.sort;
 
         options.order = {
           [sort]: value.order
-        }
+        };
       }
 
-      qb.aggregation('terms', value.field, key, options)
+      qb.aggregation('terms', value.field, key, options);
     }
   }
 
@@ -127,10 +127,10 @@ exports.searchBuilder = function(query, config) {
 
       if (value.conjunction === false) {
 
-        a.aggregation('filter', key, key, (b) => {
+        a.aggregation('filter', key, key, () => {
 
           // empty bool is slow
-          var filter = bodybuilder().andFilter('bool', b => {
+          const filter = bodybuilder().andFilter('bool', b => {
 
             for (const [key2, values2] of Object.entries(filters)) {
               for (const value2 of values2) {
@@ -142,21 +142,21 @@ exports.searchBuilder = function(query, config) {
 
 
             return b;
-          })
+          });
 
-          var options = {
+          const options = {
             size: value.size
-          }
+          };
 
           if (value.sort) {
-            var sort = value.sort === '_term' ? '_key' : value.sort;
+            const sort = value.sort === '_term' ? '_key' : value.sort;
 
             options.order = {
               [sort]: value.order
-            }
+            };
           }
 
-          filter.aggregation('terms', value.field, key, options)
+          filter.aggregation('terms', value.field, key, options);
 
           /***
            * global filters copy
@@ -177,38 +177,38 @@ exports.searchBuilder = function(query, config) {
               fields: query.fields,
               // @TODO rename to query_operator
               operator: query.operator
-            })
+            });
           }
 
           if (query.ids) {
-            filter.filter('ids', { values: query.ids })
+            filter.filter('ids', { values: query.ids });
           }
 
           if (query.query_string) {
-            filter.filter('query_string', { query: query.query_string })
+            filter.filter('query_string', { query: query.query_string });
           }
 
           if (query.ids && Array.isArray(query.ids)) {
-            filter.filter('ids', { values: query.ids })
+            filter.filter('ids', { values: query.ids });
           }
 
           if (query.exclude_ids && Array.isArray(query.exclude_ids)) {
-            filter.notFilter('ids', { values: query.exclude_ids })
+            filter.notFilter('ids', { values: query.exclude_ids });
           }
 
           /***
            * global filters copy end
            */
           return filter;
-        })
+        });
       }
     }
 
     return a;
-  })
+  });
 
   // no slow post filter
 
   //console.log(qb.build());
   return qb;
-}
+};
