@@ -1,0 +1,34 @@
+{
+  "tags": {
+    "type": "keyword",
+    "store": true
+  },
+  "tags_or": {
+    "type": "keyword",
+    "store": true
+  },
+  "country": {
+    "type": "keyword",
+    "store": true
+  },
+  "genres": {
+    "type": "keyword",
+    "store": true
+  },
+  "name": {
+    "type": "text",
+    "fielddata": true
+  },
+  "rating": {
+    "type": "float",
+    "store": true
+  },
+  "actors": {
+    "type": "keyword",
+    "store": true
+  },
+  "actors_or": {
+    "type": "keyword",
+    "store": true
+  }
+}

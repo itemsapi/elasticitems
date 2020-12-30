@@ -28,10 +28,10 @@ module.exports = function elasticitems(elastic_config, search_config) {
     input = input || {};
     input.per_page = input.per_page || 16;
 
-    console.log('start');
 
-    var body = builder.searchBuilder(input, search_config)
+    var body = builder.searchBuilder(input, local_search_config ||  search_config)
 
+    //console.log('start');
     //console.log(body.build());
     console.log(JSON.stringify(body.build(), null, 2));
 
@@ -121,7 +121,7 @@ module.exports = function elasticitems(elastic_config, search_config) {
      * per_page
      * page
      */
-    aggregation: function(input) {
+    aggregation: async function(input) {
 
       input = input || {};
       input.size = parseInt(input.size || 100)
@@ -174,11 +174,21 @@ module.exports = function elasticitems(elastic_config, search_config) {
         }
       })
 
+      //console.log(input);
+      //input.field = 'tags';
+      console.log(local_search_config);
+
       return search(input, local_search_config)
       .then(function(result) {
+
+        //console.log(result.data.aggregations.tags);
         return searchHelper.facetsConverter(input, local_search_config, result);
       })
       .then(function(result) {
+
+        //console.log('before find');
+        //console.log(key);
+        //console.log(result);
         return _.find(result, {
           name: key
         })
@@ -187,6 +197,8 @@ module.exports = function elasticitems(elastic_config, search_config) {
         if (!res) {
           throw new Error('Facet for given name doesn\'t exist or is incorrect');
         }
+
+        //console.log(res);
 
         return searchHelper.processFacet(input, res);
       })

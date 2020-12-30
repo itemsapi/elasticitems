@@ -21,14 +21,20 @@ var mergeInternalAggregations = function(aggregations) {
 
 var getAggregationsResponse = function(collection_aggs, result_aggs) {
 
-  for (const [key, value] of Object.entries(result_aggs.global)) {
-    if (value && value.meta && value[key]) {
-      result_aggs[key] = value[key];
+  //console.log(result_aggs);
+  //console.log(result_aggs.global);
+
+  if (result_aggs.global) {
+
+    for (const [key, value] of Object.entries(result_aggs.global)) {
+      if (value && value[key] && value[key].buckets) {
+        result_aggs[key] = value[key];
+      }
     }
+
+    delete result_aggs.global;
   }
 
-  //delete result_aggs.global;
-  delete result_aggs.global;
   //console.log('error');
   //console.log(collection_aggs);
   //console.log(result_aggs);
@@ -49,6 +55,10 @@ var getAggregationsResponse = function(collection_aggs, result_aggs) {
       //'doc_count'
     ])
 
+    //console.log('ca');
+    //console.log(collection_aggs);
+    //console.log(k);
+
     return _.extend(v, {
       title: collection_aggs[k].title || k,
       name: k,
@@ -61,8 +71,6 @@ var getAggregationsResponse = function(collection_aggs, result_aggs) {
 
 var getAggregationsFacetsResponse = function(collection_aggs, result_aggs) {
   var aggs = getAggregationsResponse(collection_aggs, result_aggs);
-
-  console.log(aggs);
 
   aggs = _.chain(aggs)
   .filter({type: 'terms'})

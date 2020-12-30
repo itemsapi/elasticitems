@@ -35,7 +35,7 @@ exports.searchBuilder = function(query, config) {
   qb.size(per_page)
   qb.from(offset);
 
-  if (query.sort) {
+  if (query.sort && sortings && sortings[query.sort]) {
 
     var field = sortings[query.sort].field;
     var order = sortings[query.sort].order;
@@ -43,7 +43,8 @@ exports.searchBuilder = function(query, config) {
     qb.sort(field, order);
   }
 
-  //fulltextQuery.operator(data.operator || 'or');*/
+  // @TODO
+  // make a functino for a query and filter to aggregations
   if (query.query) {
     qb.query('multi_match', {
       query: query.query,
@@ -67,23 +68,8 @@ exports.searchBuilder = function(query, config) {
   }
 
 
-  /*var global_filter = bodybuilder().andFilter('bool', b => {
-
-    for (const [key2, values2] of Object.entries(filters)) {
-      for (const value2 of values2) {
-        if (key !== key2) {
-          b.andFilter('term', key2, value2);
-        }
-      }
-    }
-
-    return b;
-  }).aggregation('terms', value.field, key, {size: value.size, missing: 'N/A'})*/
-
-  /*qb.orFilter('term', 'tags', 'epic')
-  qb.orFilter('term', 'tags', 'prison')
-
-  return qb;*/
+  //console.log('filters');
+  //console.log(filters);;
 
   // global filtering
   for (const [key, values] of Object.entries(filters)) {
@@ -92,6 +78,7 @@ exports.searchBuilder = function(query, config) {
     for (const value of values) {
       //qb.filter('term', key, value)
 
+      //console.log('key');
       //console.log(aggs[key]);
 
       if (aggs[key].conjunction === true) {
@@ -129,18 +116,64 @@ exports.searchBuilder = function(query, config) {
         a.aggregation('filter', key, key, (b) => {
 
           // empty bool is slow
-          return bodybuilder().andFilter('bool', b => {
+          var filter = bodybuilder().andFilter('bool', b => {
 
             for (const [key2, values2] of Object.entries(filters)) {
               for (const value2 of values2) {
                 if (key !== key2) {
-                  b.andFilter('term', key2, value2);
+                  b.orFilter('term', key2, value2);
                 }
               }
             }
 
+
             return b;
-          }).aggregation('terms', value.field, key, {size: value.size, missing: 'N/A'})
+          })
+
+          filter.aggregation('terms', value.field, key, {size: value.size, missing: 'N/A'})
+
+          /***
+           * global filters copy
+           */
+          for (const [key, values] of Object.entries(not_filters)) {
+            for (const value of values) {
+              filter.notFilter('term', aggs[key].field, value);
+            }
+          }
+
+          /*
+           * put it to helper function
+           */
+          if (query.query) {
+            filter.filter('multi_match', {
+              query: query.query,
+              // @TODO rename field to query_fields
+              fields: query.fields,
+              // @TODO rename to query_operator
+              operator: query.operator
+            })
+          }
+
+          if (query.ids) {
+            filter.filter('ids', { values: query.ids })
+          }
+
+          if (query.query_string) {
+            filter.filter('query_string', { query: query.query_string })
+          }
+
+          if (query.ids && Array.isArray(query.ids)) {
+            filter.filter('ids', { values: query.ids })
+          }
+
+          if (query.exclude_ids && Array.isArray(query.exclude_ids)) {
+            filter.notFilter('ids', { values: query.exclude_ids })
+          }
+
+          /***
+           * global filters copy end
+           */
+          return filter;
         })
       }
     }
@@ -150,5 +183,6 @@ exports.searchBuilder = function(query, config) {
 
   // no slow post filter
 
+  //console.log(qb.build());
   return qb;
 }

@@ -1,27 +1,12 @@
 {
-  "schema": {
-    "tags": {
-      "type": "keyword",
-      "store": true
-    },
-    "genres": {
-      "type": "keyword",
-      "store": true
-    },
-    "name": {
-      "type": "text",
-      "fielddata": true
-    },
-    "rating": {
-      "type": "float",
-      "store": true
-    },
-    "actors": {
-      "type": "keyword",
-      "store": true
-    }
-  },
   "aggregations": {
+    "country": {
+      "type": "terms",
+      "field": "country",
+      "conjunction": false,
+      "size": 1000,
+      "title": "Country"
+    },
     "tags": {
       "type": "terms",
       "field": "tags",
@@ -38,7 +23,7 @@
     },
     "tags_or": {
       "type": "terms",
-      "field": "tags",
+      "field": "tags_or",
       "conjunction": false,
       "size": 1000,
       "title": "Tags OR"
@@ -52,7 +37,7 @@
     },
     "actors_or": {
       "type": "terms",
-      "field": "actors",
+      "field": "actors_or",
       "conjunction": false,
       "size": 1000,
       "title": "Actors"
