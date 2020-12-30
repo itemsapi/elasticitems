@@ -83,7 +83,7 @@ describe('should make crud operations', function() {
     assert.equal('The Shawshank Redemption', v.name);
   });
 
-  xit('should get item by key', async function() {
+  it('should get item by key', async function() {
 
     const v = await elasticitems.getBy('permalink', 'shawshank');
     assert.equal('shawshank', v.id);

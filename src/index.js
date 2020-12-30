@@ -3,6 +3,7 @@ const elasticsearch = require('elasticsearch');
 const searchHelper = require('./helpers/search');
 const Promise = require('bluebird');
 const _ = require('lodash');
+const bodybuilder = require('bodybuilder');
 
 module.exports = function elasticitems(elastic_config, search_config) {
 
@@ -50,24 +51,22 @@ module.exports = function elasticitems(elastic_config, search_config) {
 
   const getBy = function(key, value) {
 
-    //const bodybuilder = require('bodybuilder');
-    const ejs = require('elastic.js');
-    const body = ejs.Request();
-    const query = ejs.TermQuery(key, value);
-    body.query(query);
+    const qb = bodybuilder().size(5).query('term', key, {
+      value: value,
+    });
 
     return client.search({
       index: elastic_config.index,
-      //type: elastic_config.type,
-      body: body,
+      body: qb.build(),
       _source: true
-    }).then(function(res) {
-      let result = res.hits.hits;
-      result = result.length ? _.extend({
-        id: result[0]._id
-      }, result[0]._source) : null;
-      return result;
-    });
+    })
+      .then(function(res) {
+        let result = res.hits.hits;
+        result = result.length ? _.extend({
+          id: result[0]._id
+        }, result[0]._source) : null;
+        return result;
+      });
   };
 
   const similar = function(id, input) {
