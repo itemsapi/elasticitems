@@ -33,7 +33,7 @@ module.exports = function elasticitems(elastic_config, search_config) {
 
     //console.log('start');
     //console.log(body.build());
-    console.log(JSON.stringify(body.build(), null, 2));
+    //console.log(JSON.stringify(body.build(), null, 2));
 
     var result = await client.search({
       index: input.index || elastic_config.index,
@@ -58,7 +58,7 @@ module.exports = function elasticitems(elastic_config, search_config) {
 
     return client.search({
       index: elastic_config.index,
-      type: elastic_config.type,
+      //type: elastic_config.type,
       body: body,
       _source: true
     }).then(function(res) {
@@ -176,32 +176,28 @@ module.exports = function elasticitems(elastic_config, search_config) {
 
       //console.log(input);
       //input.field = 'tags';
-      console.log(local_search_config);
+      //console.log(local_search_config);
+      //console.log(key);
 
-      return search(input, local_search_config)
-      .then(function(result) {
+      //local_search_config.aggregations.tags.conjunction = true;
 
-        //console.log(result.data.aggregations.tags);
-        return searchHelper.facetsConverter(input, local_search_config, result);
+      var result = await search(input, local_search_config)
+
+      var result = searchHelper.facetsConverter(input, local_search_config, result);
+
+      //console.log('before find');
+      //console.log(key);
+      //console.log(result);
+      var res = _.find(result, {
+        name: key
       })
-      .then(function(result) {
 
-        //console.log('before find');
-        //console.log(key);
-        //console.log(result);
-        return _.find(result, {
-          name: key
-        })
-      })
-      .then(function(res) {
-        if (!res) {
-          throw new Error('Facet for given name doesn\'t exist or is incorrect');
-        }
+      if (!res) {
+        throw new Error('Facet for given name doesn\'t exist or is incorrect');
+      }
 
-        //console.log(res);
-
-        return searchHelper.processFacet(input, res);
-      })
+      var output = searchHelper.processFacet(input, res);
+      return output;
     },
 
     /**
@@ -216,7 +212,7 @@ module.exports = function elasticitems(elastic_config, search_config) {
 
       return client.update({
         index: elastic_config.index,
-        type: elastic_config.type,
+        //type: elastic_config.type,
         id: id,
         refresh: options.refresh || false,
         body: {doc: data}
@@ -232,10 +228,8 @@ module.exports = function elasticitems(elastic_config, search_config) {
 
       return client.index({
         index: elastic_config.index,
-        type: elastic_config.type,
         id: data.id,
         refresh: options.refresh || false,
-        //body: data.body
         body: data
       })
     },
@@ -249,7 +243,6 @@ module.exports = function elasticitems(elastic_config, search_config) {
 
       return client.delete({
         index: elastic_config.index,
-        type: elastic_config.type,
         id: id,
         refresh: options.refresh || false
       })
@@ -261,7 +254,7 @@ module.exports = function elasticitems(elastic_config, search_config) {
     get: function(id) {
       return client.get({
         index: elastic_config.index,
-        type: elastic_config.type,
+        //type: elastic_config.type,
         id: id
       })
       .then(result => {

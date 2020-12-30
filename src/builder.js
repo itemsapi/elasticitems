@@ -81,7 +81,7 @@ exports.searchBuilder = function(query, config) {
       //console.log('key');
       //console.log(aggs[key]);
 
-      if (aggs[key].conjunction === true) {
+      if (aggs[key].conjunction !== false) {
         qb.andFilter('term', aggs[key].field, value);
       } else {
         qb.orFilter('term', aggs[key].field, value);
@@ -98,8 +98,22 @@ exports.searchBuilder = function(query, config) {
   // conjunctive facets
   for (const [key, value] of Object.entries(aggs)) {
 
-    if (value.conjunction === true) {
-      qb.aggregation('terms', value.field, key, {size: value.size})
+    if (value.conjunction !== false) {
+
+      var options = {
+        size: value.size
+      }
+
+      if (value.sort) {
+
+        var sort = value.sort === '_term' ? '_key' : value.sort;
+
+        options.order = {
+          [sort]: value.order
+        }
+      }
+
+      qb.aggregation('terms', value.field, key, options)
     }
   }
 
@@ -130,7 +144,19 @@ exports.searchBuilder = function(query, config) {
             return b;
           })
 
-          filter.aggregation('terms', value.field, key, {size: value.size, missing: 'N/A'})
+          var options = {
+            size: value.size
+          }
+
+          if (value.sort) {
+            var sort = value.sort === '_term' ? '_key' : value.sort;
+
+            options.order = {
+              [sort]: value.order
+            }
+          }
+
+          filter.aggregation('terms', value.field, key, options)
 
           /***
            * global filters copy

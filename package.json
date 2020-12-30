@@ -1,7 +1,7 @@
 {
   "name": "elasticitems",
   "version": "1.0.19",
-  "description": "High level client for Elasticsearch written in Node.js oriented on facets",
+  "description": "Faceted search client on top of Elasticsearch",
   "main": "index.js",
   "scripts": {
     "test": "mocha -b 8000 tests/*"
@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "elasticbulk": "^1.0.24",
+    "eslint": "^7.16.0",
     "mocha": "^4.0.1",
     "should": "^13.1.2",
     "sinon": "^3.3.0"
