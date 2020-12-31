@@ -1,13 +1,13 @@
 # ElasticItems
 
-Higher level client for Elasticsearch in Node.js oriented on facets. It's a compact version of ItemsAPI without API.
+Higher level client for Elasticsearch in Node.js oriented on facets 
 
 ## Features
 
 - faceted search
 - full text
 - pagination
-- big data support
+- sorting
 
 ## Getting Started
 

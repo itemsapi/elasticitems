@@ -4,7 +4,9 @@
   "description": "Faceted search client on top of Elasticsearch",
   "main": "index.js",
   "scripts": {
-    "test": "mocha -b 8000 tests/*"
+    "test": "mocha -b 8000 tests/*",
+    "lint": "eslint \"**/*.js\" --ext js",
+    "lint:fix": "eslint \"**/*.js\" --ext js --fix"
   },
   "repository": {
     "type": "git",

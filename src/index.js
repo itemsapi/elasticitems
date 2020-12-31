@@ -10,9 +10,6 @@ module.exports = function elasticitems(elastic_config, search_config) {
   const { Client } = require('@elastic/elasticsearch');
   const client = new Client({
     node: elastic_config.host
-    //defer: function () {
-    //return Promise.defer();
-    //}
   });
 
   /**

@@ -9,8 +9,6 @@ const movies = _.map(require('./fixtures/movies.json'), v => {
 
 const HOST = process.env.HOST || 'http://localhost:9205';
 const INDEX = 'test';
-const elasticsearch = require('@elastic/elasticsearch');
-const Promise = require('bluebird');
 //const elasticbulk = require('elasticbulk');
 const elasticbulk = require('/home/mateusz/node/elasticbulk');
 
@@ -20,7 +18,7 @@ const elasticitems = ElasticItems({
   type: INDEX,
 }, movies_config);
 
-const { Client } = require('@elastic/elasticsearch')
+const { Client } = require('@elastic/elasticsearch');
 const elastic = new Client({
   node: HOST
 });

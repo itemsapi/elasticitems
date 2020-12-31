@@ -5,8 +5,6 @@ const movies_schema = require('./fixtures/movies_schema.json');
 const movies = require('./fixtures/movies.json');
 const HOST = process.env.HOST || 'http://localhost:9205';
 const INDEX = 'test';
-const elasticsearch = require('@elastic/elasticsearch');
-const Promise = require('bluebird');
 //const elasticbulk = require('elasticbulk');
 const elasticbulk = require('/home/mateusz/node/elasticbulk');
 
@@ -16,10 +14,10 @@ const elasticitems = ElasticItems({
   type: INDEX,
 }, movies_config);
 
-const { Client } = require('@elastic/elasticsearch')
+const { Client } = require('@elastic/elasticsearch');
 const elastic = new Client({
   node: HOST
-})
+});
 
 
 describe('should make crud operations', function() {

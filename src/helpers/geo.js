@@ -1,5 +1,5 @@
 'use strict';
-var _ = require('lodash');
+const _ = require('lodash');
 
 exports.getGeoPoint = function(latLng) {
   if (!latLng) {

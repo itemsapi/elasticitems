@@ -1,15 +1,14 @@
 'use strict';
 
-var should = require('should');
-var assert = require('assert');
-var _ = require('lodash')
-var searchHelper = require('./../../src/helpers/search');
+const assert = require('assert');
+const _ = require('lodash');
+const searchHelper = require('./../../src/helpers/search');
 
 describe('search helper', function() {
 
   xit('should merge internal aggregations', function test(done) {
 
-    var aggregations = {
+    const aggregations = {
       tags_internal_count: {
         doc_count: 5,
         value: 4,
@@ -27,18 +26,18 @@ describe('search helper', function() {
         size: 10,
         type: 'terms'
       }
-    }
+    };
 
-    var result = searchHelper.mergeInternalAggregations(aggregations)
-    assert.equal(1, _.keys(result).length)
-    assert.equal(4, aggregations.tags.total)
+    const result = searchHelper.mergeInternalAggregations(aggregations);
+    assert.equal(1, _.keys(result).length);
+    assert.equal(4, aggregations.tags.total);
     done();
   });
 
 
   it('should merge collection aggregations (object) with elastic aggregations', function test(done) {
 
-    var collection_aggregations = {
+    const collection_aggregations = {
       tags: {
         type: 'tags',
         field: 'actors',
@@ -52,9 +51,9 @@ describe('search helper', function() {
         position: 100,
         title: 'Actors'
       }
-    }
+    };
 
-    var elastic_aggregations = {
+    const elastic_aggregations = {
       tags: {
         doc_count: 0
       },
@@ -66,23 +65,23 @@ describe('search helper', function() {
           buckets: []
         }
       }
-    }
+    };
 
-    var result = searchHelper.getAggregationsResponse(
+    const result = searchHelper.getAggregationsResponse(
       collection_aggregations,
       elastic_aggregations
     );
 
     result.should.be.an.instanceOf(Object);
-    result.should.have.property('tags')
-    result.should.have.property('actors_terms')
-    result.tags.should.have.property('position', 0)
-    result.actors_terms.should.have.property('name', 'actors_terms')
-    result.actors_terms.should.have.property('type', 'terms')
-    result.actors_terms.should.have.property('buckets')
-    result.actors_terms.should.have.property('title')
-    result.actors_terms.should.have.property('position', 100)
-    result.actors_terms.should.have.property('doc_count')
+    result.should.have.property('tags');
+    result.should.have.property('actors_terms');
+    result.tags.should.have.property('position', 0);
+    result.actors_terms.should.have.property('name', 'actors_terms');
+    result.actors_terms.should.have.property('type', 'terms');
+    result.actors_terms.should.have.property('buckets');
+    result.actors_terms.should.have.property('title');
+    result.actors_terms.should.have.property('position', 100);
+    result.actors_terms.should.have.property('doc_count');
     done();
   });
 });
