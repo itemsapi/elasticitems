@@ -37,18 +37,6 @@ describe('should search movies', function() {
         console.log(v);
       });
 
-    const schema = {
-      settings: {
-        index: {
-          number_of_shards: 1,
-          number_of_replicas: 1
-        }
-      },
-      mappings: {
-        properties: movies_schema
-      }
-    };
-
     await elasticbulk
       .import(movies, {
         index: INDEX,
@@ -56,7 +44,7 @@ describe('should search movies', function() {
         refresh: true,
         debug: true,
         engine: 'elasticsearch7x',
-      }, schema)
+      }, movies_schema)
       .catch(() => {
       });
   });
@@ -101,7 +89,7 @@ describe('should search movies', function() {
         query: 'biography'
       });
 
-      assert.equal(0, v.pagination.total);
+      assert.equal(3, v.pagination.total);
     });
 
     it('should makes a full text search', async function() {
@@ -393,7 +381,7 @@ describe('should search movies', function() {
       assert.equal(9, v.pagination.total);
     });
 
-    xit('should make single facet query on movies with search query', async function() {
+    it('should make single facet query on movies with search query', async function() {
 
       const v = await elasticitems.aggregation({
         name: 'tags',
@@ -405,14 +393,14 @@ describe('should search movies', function() {
         per_page: 5
       });
 
-      //assert.equal('mafia', v.data.buckets[2].key);
+      assert.equal('mafia', v.data.buckets[2].key);
       assert.equal(1, v.data.buckets[2].doc_count);
       assert.equal(5, v.data.buckets.length);
       assert.equal(5, v.pagination.per_page);
       assert.equal(5, v.pagination.total);
     });
 
-    xit('should make single facet query on movies with search query_string', async function() {
+    it('should make single facet query on movies with search query_string', async function() {
 
       const v = await elasticitems.aggregation({
         name: 'tags',
@@ -472,7 +460,7 @@ describe('should search movies', function() {
     it('should make single facet query on movies with field param', async function() {
 
       const v = await elasticitems.aggregation({
-        field: 'genres',
+        field: 'genres.raw',
         order: 'asc',
         conjunction: true,
         sort: '_term'

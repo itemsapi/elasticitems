@@ -32,25 +32,13 @@ describe('should make crud operations', function() {
         console.log(v);
       });
 
-    const schema = {
-      settings: {
-        index: {
-          number_of_shards: 1,
-          number_of_replicas: 1
-        }
-      },
-      mappings: {
-        properties: movies_schema
-      }
-    };
-
     await elasticbulk.import(movies, {
       index: INDEX,
       host: HOST,
       debug: true,
       refresh: true,
       engine: 'elasticsearch7x',
-    }, schema)
+    }, movies_schema)
       .catch(() => {
       });
   });
