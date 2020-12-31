@@ -9,8 +9,8 @@ const movies = _.map(require('./fixtures/movies.json'), v => {
 
 const HOST = process.env.HOST || 'http://localhost:9205';
 const INDEX = 'test';
-//const elasticbulk = require('elasticbulk');
-const elasticbulk = require('/home/mateusz/node/elasticbulk');
+const elasticbulk = require('elasticbulk');
+//const elasticbulk = require('/home/mateusz/node/elasticbulk');
 
 const elasticitems = ElasticItems({
   host: HOST,
@@ -53,13 +53,11 @@ describe('should search movies', function() {
       .import(movies, {
         index: INDEX,
         host: HOST,
+        refresh: true,
         debug: true,
         engine: 'elasticsearch7x',
       }, schema)
-      .delay(1000)
-      .catch(v => {
-        console.log('import');
-        console.log(v);
+      .catch(() => {
       });
   });
 

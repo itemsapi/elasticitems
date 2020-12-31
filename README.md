@@ -117,6 +117,9 @@ Updates object in index
 
 Delete object from index
 
+### Notes
+
+- Full text search does not work on `keyword` type because this type is not tokenized. `keyword` type is great for faceted fields
 
 ## Tests
 

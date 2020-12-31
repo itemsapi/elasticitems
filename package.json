@@ -25,10 +25,9 @@
     "lodash": "^4.17.20"
   },
   "devDependencies": {
-    "elasticbulk": "^1.0.24",
+    "elasticbulk": "^1.0.28",
     "eslint": "^7.16.0",
     "mocha": "^4.0.1",
-    "should": "^13.1.2",
     "sinon": "^3.3.0"
   }
 }
