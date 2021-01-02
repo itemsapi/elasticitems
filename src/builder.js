@@ -3,7 +3,7 @@
 //const collectionHelper = require('./helpers/collection');
 //const geoHelper = require('./helpers/geo');
 const bodybuilder = require('bodybuilder');
-//const _ = require('lodash');
+const _ = require('lodash');
 
 /**
  * ItemsAPI search builder
@@ -11,6 +11,8 @@ const bodybuilder = require('bodybuilder');
 exports.searchBuilder = function(query, config) {
   const page = query.page || 1;
   const per_page = query.per_page || 10;
+  const facets_names_obj = query.facets_names ? _.keyBy(query.facets_names) : null;
+
   const offset = (page - 1) * per_page;
   const aggs = config.aggregations;
   const sortings = config.sortings;
@@ -80,6 +82,7 @@ exports.searchBuilder = function(query, config) {
       //console.log('key');
       //console.log(aggs[key]);
 
+      //console.log(key);
 
       if (aggs[key].type === 'range') {
 
@@ -148,14 +151,14 @@ exports.searchBuilder = function(query, config) {
         };
       }
 
-      //console.log(value);
-
-      if (value.type === 'range') {
-        qb.aggregation('range', value.field, key, {
-          ranges: value.ranges
-        });
-      } else {
-        qb.aggregation('terms', value.field, key, options);
+      if (!facets_names_obj || facets_names_obj[key]) {
+        if (value.type === 'range') {
+          qb.aggregation('range', value.field, key, {
+            ranges: value.ranges
+          });
+        } else {
+          qb.aggregation('terms', value.field, key, options);
+        }
       }
     }
   }
@@ -214,18 +217,15 @@ exports.searchBuilder = function(query, config) {
             };
           }
 
-
-          //filter.aggregation('terms', value.field, key, options);
-
-          if (value.type === 'range') {
-            filter.aggregation('range', value.field, key, {
-              ranges: value.ranges
-            });
-          } else {
-            filter.aggregation('terms', value.field, key, options);
+          if (!facets_names_obj || facets_names_obj[key]) {
+            if (value.type === 'range') {
+              filter.aggregation('range', value.field, key, {
+                ranges: value.ranges
+              });
+            } else {
+              filter.aggregation('terms', value.field, key, options);
+            }
           }
-
-
 
           /***
            * global filters copy

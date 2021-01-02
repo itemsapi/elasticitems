@@ -244,6 +244,9 @@ describe('should search movies', function() {
       assert.equal('12 Angry Men', v.data.items[0].name);
     });
 
+
+
+
     it('makes a simple facet filtering', async function() {
 
       const v = await elasticitems.search({
@@ -260,6 +263,23 @@ describe('should search movies', function() {
       //assert.equal('USA', v.data.aggregations.country.buckets[1].key);
       //assert.equal(2, v.data.aggregations.country.buckets[1].doc_count);
 
+    });
+
+    it('makes a simple facet filtering only for a given facets name', async function() {
+
+      let v = await elasticitems.search({
+        per_page: 1,
+        facets_names: ['tags']
+      });
+      assert.equal(20, v.pagination.total);
+      assert.deepEqual(['tags'], Object.keys(v.data.aggregations));
+
+      v = await elasticitems.search({
+        per_page: 1,
+        facets_names: ['tags', 'rating_or']
+      });
+      assert.equal(20, v.pagination.total);
+      assert.deepEqual(['tags', 'rating_or'], Object.keys(v.data.aggregations));
     });
 
     it('makes a simple facet filtering with or (disjunctive)', async function() {
