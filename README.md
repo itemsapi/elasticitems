@@ -1,6 +1,6 @@
 # ElasticItems
 
-Higher level client for Elasticsearch in Node.js oriented on facets 
+Elasticsearch 7.x client for JS with faceted search, custom features and simple interface
 
 ## Features
 
@@ -56,6 +56,8 @@ Responsible for defining global configuration.
   * **<code>filters</code>** filtering items based on specific aggregations i.e. {tags: ['drama' , 'historical']}  
 
   * **<code>query_string</code>** i.e. "brand:Audi OR brand:Mercedes"
+
+  * **<code>facets_names</code>** make faceted search only for specific fields i.e. ['tags', 'genres']
 
   * **<code>fields</code>** search only in specifc fields i.e. ['name', 'description']. Missing parameter means search in all fields
 
