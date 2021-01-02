@@ -45,17 +45,35 @@
     "rating": {
       "ranges": [
         {
-          "name": "8 - 9",
-          "gte": 8,
-          "lte": 9
+          "key": "9 - 10",
+          "from": 9,
+          "to": 10
         },
         {
-          "name": "< 10",
-          "gte": 9,
-          "lte": 10
+          "key": "8 - 9",
+          "from": 8,
+          "to": 9
         }
       ],
       "conjunction": true,
+      "field": "rating",
+      "type": "range"
+    },
+    "rating_or": {
+      "ranges": [
+        {
+          "key": "9 - 10",
+          "from": 9,
+          "to": 10
+        },
+        {
+          "key": "8 - 9",
+          "from": 8,
+          "to": 9
+        }
+      ],
+      "title": "Rating OR",
+      "conjunction": false,
       "field": "rating",
       "type": "range"
     }

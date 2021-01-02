@@ -26,11 +26,7 @@ describe('should make crud operations', function() {
     await elastic.indices.delete({
       index: INDEX,
       ignore_unavailable: true,
-    })
-      .catch(v => {
-        console.log('delete');
-        console.log(v);
-      });
+    });
 
     await elasticbulk.import(movies, {
       index: INDEX,
@@ -38,11 +34,8 @@ describe('should make crud operations', function() {
       debug: true,
       refresh: true,
       engine: 'elasticsearch7x',
-    }, movies_schema)
-      .catch(() => {
-      });
+    }, movies_schema);
   });
-
 
   it('adds new item', async function() {
 

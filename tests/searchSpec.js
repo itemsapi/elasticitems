@@ -27,26 +27,18 @@ describe('should search movies', function() {
 
   before(async function() {
 
-    await elastic.indices
-      .delete({
-        index: INDEX,
-        ignore_unavailable: true,
-      })
-      .catch(v => {
-        console.log('delete');
-        console.log(v);
-      });
+    await elastic.indices.delete({
+      index: INDEX,
+      ignore_unavailable: true,
+    });
 
-    await elasticbulk
-      .import(movies, {
-        index: INDEX,
-        host: HOST,
-        refresh: true,
-        debug: true,
-        engine: 'elasticsearch7x',
-      }, movies_schema)
-      .catch(() => {
-      });
+    await elasticbulk.import(movies, {
+      index: INDEX,
+      host: HOST,
+      refresh: true,
+      debug: true,
+      engine: 'elasticsearch7x',
+    }, movies_schema);
   });
 
   describe('should search movies', function() {
@@ -64,9 +56,12 @@ describe('should search movies', function() {
       assert.equal(undefined, v.data.items[0].score);
 
       //console.log(v.data.aggregations.rating);
-      //assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count)
-      //assert.equal('8 - 9', v.data.aggregations.rating.buckets[0].key)
-      //assert.equal(4, v.data.aggregations.rating.buckets[1].doc_count)
+      console.log(v.data.aggregations.rating_or);
+      assert.equal(16, v.data.aggregations.rating_or.buckets[0].doc_count)
+      assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count)
+      assert.equal('8 - 9', v.data.aggregations.rating.buckets[0].key)
+      assert.equal('8 - 9', v.data.aggregations.rating_or.buckets[0].key)
+      assert.equal(4, v.data.aggregations.rating.buckets[1].doc_count)
       assert.equal(92, v.data.aggregations.tags.buckets.length);
       assert.equal('Tags', v.data.aggregations.tags.title);
       assert.equal(262, v.data.aggregations.actors.buckets.length);
@@ -156,6 +151,13 @@ describe('should search movies', function() {
       assert.equal(5, v.data.aggregations.tags.buckets.length);
       assert.equal(5, v.data.aggregations.tags_or.buckets.length);
 
+      assert.equal(0, v.data.aggregations.rating.buckets[0].doc_count)
+      assert.equal(1, v.data.aggregations.rating.buckets[1].doc_count)
+      assert.equal('9 - 10', v.data.aggregations.rating.buckets[1].key)
+    })
+
+    it('should makes a full text search and search by ids', async function() {
+
       v = await elasticitems.search({
         query_string: 'rating:<=9.3 AND rating:>=9.3',
         query: 'imprisoned number years',
@@ -231,6 +233,7 @@ describe('should search movies', function() {
       assert.equal('USA', v.data.aggregations.country.buckets[0].key);
       assert.equal(1, v.data.aggregations.country.buckets[0].doc_count);
     });
+
 
     it('makes a simple sort', async function() {
 
@@ -316,16 +319,114 @@ describe('should search movies', function() {
       assert.equal(2, v.data.aggregations.country.buckets[1].doc_count);
     });
 
-    xit('makes a simple facet filtering with ranges', async function() {
+    it('makes a simple facet filtering with ranges', async function() {
 
-      const v = await elasticitems.search({
+      let v = await elasticitems.search({
         per_page: 1,
         filters: {
           rating: ['8 - 9']
         }
       });
+
       assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count);
+      assert.equal(0, v.data.aggregations.rating.buckets[1].doc_count);
+      assert.equal(16, v.pagination.total);
+
+      v = await elasticitems.search({
+        per_page: 1,
+        filters: {
+          rating: ['9 - 10']
+        }
+      });
+
+      assert.equal(0, v.data.aggregations.rating.buckets[0].doc_count);
+      assert.equal(4, v.data.aggregations.rating.buckets[1].doc_count);
+      assert.equal(4, v.pagination.total);
+
+      v = await elasticitems.search({
+        per_page: 1,
+        not_filters: {
+          rating: ['9 - 10']
+        }
+      });
+
+      assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count);
+      assert.equal(0, v.data.aggregations.rating.buckets[1].doc_count);
+      assert.equal(16, v.pagination.total);
+
+      v = await elasticitems.search({
+        per_page: 1,
+        not_filters: {
+          rating: ['8 - 9', '9 - 10']
+        }
+      });
+
+      assert.equal(0, v.data.aggregations.rating.buckets[0].doc_count);
+      assert.equal(0, v.data.aggregations.rating.buckets[1].doc_count);
+      assert.equal(0, v.pagination.total);
     });
+
+    it('makes a simple facet filtering with disjunctive ranges', async function() {
+
+      let v = await elasticitems.search({
+        per_page: 1,
+        filters: {
+          rating_or: ['8 - 9']
+        }
+      });
+
+      //console.log(v.data.aggregations.rating);
+
+      assert.equal(16, v.data.aggregations.rating_or.buckets[0].doc_count);
+      assert.equal(4, v.data.aggregations.rating_or.buckets[1].doc_count);
+
+      assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count);
+      assert.equal(0, v.data.aggregations.rating.buckets[1].doc_count);
+      assert.equal(16, v.pagination.total);
+
+      v = await elasticitems.search({
+        per_page: 1,
+        filters: {
+          rating_or: ['9 - 10']
+        }
+      });
+
+      assert.equal(16, v.data.aggregations.rating_or.buckets[0].doc_count);
+      assert.equal(4, v.data.aggregations.rating_or.buckets[1].doc_count);
+
+      assert.equal(0, v.data.aggregations.rating.buckets[0].doc_count);
+      assert.equal(4, v.data.aggregations.rating.buckets[1].doc_count);
+
+      assert.equal(2, v.data.aggregations.tags.buckets[0].doc_count);
+      assert.equal('mafia', v.data.aggregations.tags.buckets[0].key);
+
+      assert.equal(2, v.data.aggregations.tags_or.buckets[0].doc_count);
+      assert.equal('mafia', v.data.aggregations.tags_or.buckets[0].key);
+
+      assert.equal(4, v.pagination.total);
+
+      v = await elasticitems.search({
+        per_page: 1,
+        filters: {
+          rating_or: ['8 - 9', '9 - 10']
+        }
+      });
+
+      assert.equal(16, v.data.aggregations.rating_or.buckets[0].doc_count);
+      assert.equal(4, v.data.aggregations.rating_or.buckets[1].doc_count);
+
+      assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count);
+      assert.equal(4, v.data.aggregations.rating.buckets[1].doc_count);
+
+      assert.equal(3, v.data.aggregations.tags.buckets[0].doc_count);
+      assert.equal('mafia', v.data.aggregations.tags.buckets[0].key);
+
+      assert.equal(3, v.data.aggregations.tags_or.buckets[0].doc_count);
+      assert.equal('mafia', v.data.aggregations.tags_or.buckets[0].key);
+
+      assert.equal(20, v.pagination.total);
+    });
+
   });
 
   describe('makes single facet query', function() {

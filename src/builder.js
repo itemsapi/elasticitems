@@ -1,6 +1,5 @@
 'use strict';
 
-//const ejs = require('elastic.js');
 //const collectionHelper = require('./helpers/collection');
 //const geoHelper = require('./helpers/geo');
 const bodybuilder = require('bodybuilder');
@@ -67,11 +66,11 @@ exports.searchBuilder = function(query, config) {
     qb.notQuery('ids', { values: query.exclude_ids });
   }
 
-
   //console.log('filters');
-  //console.log(filters);;
+  //console.log(filters);
 
-  // global filtering
+  // global filtering by filters
+  // it filters all aggregations except global one
   for (const [key, values] of Object.entries(filters)) {
 
     // dis OR con AND
@@ -81,17 +80,53 @@ exports.searchBuilder = function(query, config) {
       //console.log('key');
       //console.log(aggs[key]);
 
-      if (aggs[key].conjunction !== false) {
-        qb.andFilter('term', aggs[key].field, value);
+
+      if (aggs[key].type === 'range') {
+
+        const range = aggs[key].ranges.find(element => element.key === value);
+
+        // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-bucket-range-aggregation.html
+        if (range) {
+
+          if (aggs[key].conjunction !== false) {
+            qb.andFilter('range', aggs[key].field, {
+              gte: range.from,
+              lt: range.to
+            });
+          } else {
+
+            qb.orFilter('range', aggs[key].field, {
+              gte: range.from,
+              lt: range.to
+            });
+          }
+        }
+
       } else {
-        qb.orFilter('term', aggs[key].field, value);
+
+        if (aggs[key].conjunction !== false) {
+          qb.andFilter('term', aggs[key].field, value);
+        } else {
+          qb.orFilter('term', aggs[key].field, value);
+        }
       }
     }
   }
 
   for (const [key, values] of Object.entries(not_filters)) {
     for (const value of values) {
-      qb.notFilter('term', aggs[key].field, value);
+
+      if (aggs[key].type === 'range') {
+        const range = aggs[key].ranges.find(element => element.key === value);
+        if (range) {
+          qb.notFilter('range', aggs[key].field, {
+            gte: range.from,
+            lt: range.to
+          });
+        }
+      } else {
+        qb.notFilter('term', aggs[key].field, value);
+      }
     }
   }
 
@@ -113,7 +148,15 @@ exports.searchBuilder = function(query, config) {
         };
       }
 
-      qb.aggregation('terms', value.field, key, options);
+      //console.log(value);
+
+      if (value.type === 'range') {
+        qb.aggregation('range', value.field, key, {
+          ranges: value.ranges
+        })
+      } else {
+        qb.aggregation('terms', value.field, key, options);
+      }
     }
   }
 
@@ -135,7 +178,22 @@ exports.searchBuilder = function(query, config) {
             for (const [key2, values2] of Object.entries(filters)) {
               for (const value2 of values2) {
                 if (key !== key2) {
-                  b.orFilter('term', key2, value2);
+
+
+                  if (aggs[key2].type === 'range') {
+
+                    const range = aggs[key2].ranges.find(element => element.key === value2);
+
+                    if (range) {
+                      b.orFilter('range', aggs[key2].field, {
+                        gte: range.from,
+                        lt: range.to
+                      });
+                    }
+
+                  } else {
+                    b.orFilter('term', key2, value2);
+                  }
                 }
               }
             }
@@ -156,14 +214,36 @@ exports.searchBuilder = function(query, config) {
             };
           }
 
-          filter.aggregation('terms', value.field, key, options);
+
+          //filter.aggregation('terms', value.field, key, options);
+
+          if (value.type === 'range') {
+            filter.aggregation('range', value.field, key, {
+              ranges: value.ranges
+            })
+          } else {
+            filter.aggregation('terms', value.field, key, options);
+          }
+
+
 
           /***
            * global filters copy
            */
           for (const [key, values] of Object.entries(not_filters)) {
             for (const value of values) {
-              filter.notFilter('term', aggs[key].field, value);
+
+              if (aggs[key].type === 'range') {
+                const range = aggs[key].ranges.find(element => element.key === value);
+                if (range) {
+                  filter.notFilter('range', aggs[key].field, {
+                    gte: range.from,
+                    lt: range.to
+                  });
+                }
+              } else {
+                filter.notFilter('term', aggs[key].field, value);
+              }
             }
           }
 
@@ -208,7 +288,6 @@ exports.searchBuilder = function(query, config) {
   });
 
   // no slow post filter
-
-  //console.log(qb.build());
+  //console.log(JSON.stringify(qb.build(), null, 2));
   return qb;
 };
