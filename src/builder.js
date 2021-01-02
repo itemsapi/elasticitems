@@ -153,7 +153,7 @@ exports.searchBuilder = function(query, config) {
       if (value.type === 'range') {
         qb.aggregation('range', value.field, key, {
           ranges: value.ranges
-        })
+        });
       } else {
         qb.aggregation('terms', value.field, key, options);
       }
@@ -220,7 +220,7 @@ exports.searchBuilder = function(query, config) {
           if (value.type === 'range') {
             filter.aggregation('range', value.field, key, {
               ranges: value.ranges
-            })
+            });
           } else {
             filter.aggregation('terms', value.field, key, options);
           }

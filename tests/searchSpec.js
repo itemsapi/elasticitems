@@ -57,11 +57,11 @@ describe('should search movies', function() {
 
       //console.log(v.data.aggregations.rating);
       console.log(v.data.aggregations.rating_or);
-      assert.equal(16, v.data.aggregations.rating_or.buckets[0].doc_count)
-      assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count)
-      assert.equal('8 - 9', v.data.aggregations.rating.buckets[0].key)
-      assert.equal('8 - 9', v.data.aggregations.rating_or.buckets[0].key)
-      assert.equal(4, v.data.aggregations.rating.buckets[1].doc_count)
+      assert.equal(16, v.data.aggregations.rating_or.buckets[0].doc_count);
+      assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count);
+      assert.equal('8 - 9', v.data.aggregations.rating.buckets[0].key);
+      assert.equal('8 - 9', v.data.aggregations.rating_or.buckets[0].key);
+      assert.equal(4, v.data.aggregations.rating.buckets[1].doc_count);
       assert.equal(92, v.data.aggregations.tags.buckets.length);
       assert.equal('Tags', v.data.aggregations.tags.title);
       assert.equal(262, v.data.aggregations.actors.buckets.length);
@@ -143,7 +143,7 @@ describe('should search movies', function() {
 
     it('should makes a full text search and search by ids', async function() {
 
-      let v = await elasticitems.search({
+      const v = await elasticitems.search({
         ids: ['1']
       });
 
@@ -151,14 +151,14 @@ describe('should search movies', function() {
       assert.equal(5, v.data.aggregations.tags.buckets.length);
       assert.equal(5, v.data.aggregations.tags_or.buckets.length);
 
-      assert.equal(0, v.data.aggregations.rating.buckets[0].doc_count)
-      assert.equal(1, v.data.aggregations.rating.buckets[1].doc_count)
-      assert.equal('9 - 10', v.data.aggregations.rating.buckets[1].key)
-    })
+      assert.equal(0, v.data.aggregations.rating.buckets[0].doc_count);
+      assert.equal(1, v.data.aggregations.rating.buckets[1].doc_count);
+      assert.equal('9 - 10', v.data.aggregations.rating.buckets[1].key);
+    });
 
     it('should makes a full text search and search by ids', async function() {
 
-      v = await elasticitems.search({
+      let v = await elasticitems.search({
         query_string: 'rating:<=9.3 AND rating:>=9.3',
         query: 'imprisoned number years',
         fields: ['description'],
