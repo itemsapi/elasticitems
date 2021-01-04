@@ -13,6 +13,8 @@ exports.searchBuilder = function(query, config) {
   const per_page = query.per_page || 10;
   const facets_names_obj = query.facets_names ? _.keyBy(query.facets_names) : null;
 
+  //console.log(facets_names_obj);
+
   const offset = (page - 1) * per_page;
   const aggs = config.aggregations;
   const sortings = config.sortings;
@@ -35,6 +37,8 @@ exports.searchBuilder = function(query, config) {
 
   qb.size(per_page);
   qb.from(offset);
+
+  //qb.filterMinimumShouldMatch(1, true);
 
   if (query.sort && sortings && sortings[query.sort]) {
 
@@ -107,7 +111,7 @@ exports.searchBuilder = function(query, config) {
 
       } else {
 
-        if (aggs[key].conjunction !== false) {
+        if (aggs[key].conjunction !== false || values.length === 1) {
           qb.andFilter('term', aggs[key].field, value);
         } else {
           qb.orFilter('term', aggs[key].field, value);
@@ -153,7 +157,7 @@ exports.searchBuilder = function(query, config) {
         };
       }
 
-      if (!facets_names_obj || facets_names_obj[key]) {
+      if (facets_names_obj === null || facets_names_obj[key]) {
         if (value.type === 'range') {
           qb.aggregation('range', value.field, key, {
             ranges: value.ranges
@@ -168,18 +172,17 @@ exports.searchBuilder = function(query, config) {
   // disjunctive facets (global aggregations)
   qb.aggregation('global', {}, 'global', a => {
 
-
     // @TODO add global conjunction filter and query here
-
     for (const [key, value] of Object.entries(aggs)) {
 
       if (value.conjunction === false) {
+
+        if (facets_names_obj === null || facets_names_obj[key]) {
 
         a.aggregation('filter', key, key, () => {
 
           // empty bool is slow
           const filter = bodybuilder().andFilter('bool', b => {
-
             for (const [key2, values2] of Object.entries(filters)) {
               for (const value2 of values2) {
                 if (key !== key2) {
@@ -190,14 +193,25 @@ exports.searchBuilder = function(query, config) {
                     const range = aggs[key2].ranges.find(element => element.key === value2);
 
                     if (range) {
-                      b.orFilter('range', aggs[key2].field, {
-                        gte: range.from,
-                        lt: range.to
-                      });
+                      if (aggs[key2].conjunction !== false) {
+                        b.andFilter('range', aggs[key2].field, {
+                          gte: range.from,
+                          lt: range.to
+                        });
+                      } else {
+                        b.orFilter('range', aggs[key2].field, {
+                          gte: range.from,
+                          lt: range.to
+                        });
+                      }
                     }
 
                   } else {
-                    b.orFilter('term', key2, value2);
+                    if (aggs[key2].conjunction !== false) {
+                      b.andFilter('term', key2, value2);
+                    } else {
+                      b.orFilter('term', key2, value2);
+                    }
                   }
                 }
               }
@@ -221,7 +235,8 @@ exports.searchBuilder = function(query, config) {
             };
           }
 
-          if (!facets_names_obj || facets_names_obj[key]) {
+          if (facets_names_obj === null || facets_names_obj[key]) {
+
             if (value.type === 'range') {
               filter.aggregation('range', value.field, key, {
                 ranges: value.ranges
@@ -285,6 +300,8 @@ exports.searchBuilder = function(query, config) {
            */
           return filter;
         });
+      }
+
       }
     }
 

@@ -28,7 +28,11 @@ module.exports = function elasticitems(elastic_config, search_config) {
 
     //console.log('start');
     //console.log(body.build());
-    //console.log(JSON.stringify(qb.build(), null, 2));
+
+
+    if (input.print_query) {
+      console.log(JSON.stringify(qb.build(), null, 2));
+    }
 
     const { body } = await client.search({
       index: input.index || elastic_config.index,

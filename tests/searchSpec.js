@@ -312,6 +312,8 @@ describe('should search movies', function() {
       assert.equal(3, v.pagination.total);
       assert.equal(92, v.data.aggregations.tags_or.buckets.length);
 
+      console.log(v.data.aggregations.country);
+
       assert.equal('USA', v.data.aggregations.country.buckets[0].key);
       assert.equal(3, v.data.aggregations.country.buckets[0].doc_count);
       assert.equal('New Zealand', v.data.aggregations.country.buckets[1].key);
@@ -337,6 +339,40 @@ describe('should search movies', function() {
       assert.equal(16, v.data.aggregations.country.buckets[0].doc_count);
       assert.equal('UK', v.data.aggregations.country.buckets[1].key);
       assert.equal(2, v.data.aggregations.country.buckets[1].doc_count);
+    });
+
+
+    it('makes a simple facet filtering on two names', async function() {
+
+      const v = await elasticitems.search({
+        per_page: 1,
+        facets_names: ['tags_or', 'actors_or'],
+        filters: {
+          tags_or: ['mafia'],
+          actors_or: ['Al Pacino']
+        }
+      });
+
+      //console.log(v.data.aggregations);
+      console.log(v);
+
+      assert.equal(2, v.pagination.total);
+      assert.equal(9, v.data.aggregations.tags_or.buckets.length);
+      assert.equal(38, v.data.aggregations.actors_or.buckets.length);
+    });
+
+    it('makes a simple facet filtering on no names', async function() {
+
+      const v = await elasticitems.search({
+        per_page: 1,
+        facets_names: [],
+        filters: {
+          tags_or: ['mafia'],
+          actors_or: ['Al Pacino']
+        }
+      });
+
+      assert.equal(2, v.pagination.total);
     });
 
     it('makes a simple facet filtering with ranges', async function() {
