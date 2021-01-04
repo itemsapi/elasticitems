@@ -142,12 +142,14 @@ exports.searchBuilder = function(query, config) {
         size: value.size
       };
 
+      const order = value.order ? value.order : 'desc';
+
       if (value.sort) {
 
         const sort = value.sort === '_term' ? '_key' : value.sort;
 
         options.order = {
-          [sort]: value.order
+          [sort]: order
         };
       }
 
@@ -209,11 +211,13 @@ exports.searchBuilder = function(query, config) {
             size: value.size
           };
 
+          const order = value.order ? value.order : 'desc';
+
           if (value.sort) {
             const sort = value.sort === '_term' ? '_key' : value.sort;
 
             options.order = {
-              [sort]: value.order
+              [sort]: order
             };
           }
 

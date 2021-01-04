@@ -28,10 +28,11 @@ module.exports = function elasticitems(elastic_config, search_config) {
 
     //console.log('start');
     //console.log(body.build());
-    //console.log(JSON.stringify(body.build(), null, 2));
+    //console.log(JSON.stringify(qb.build(), null, 2));
 
     const { body } = await client.search({
       index: input.index || elastic_config.index,
+      track_total_hits: true,
       //type: input.type || elastic_config.type,
       body: qb.build()
     });
