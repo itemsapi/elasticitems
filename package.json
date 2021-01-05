@@ -1,10 +1,12 @@
 {
   "name": "elasticitems",
-  "version": "1.0.19",
-  "description": "High level client for Elasticsearch written in Node.js oriented on facets",
+  "version": "2.0.0",
+  "description": "Faceted search client on top of Elasticsearch 7.x",
   "main": "index.js",
   "scripts": {
-    "test": "mocha -b 8000 tests/*"
+    "test": "mocha -b 8000 tests/*",
+    "lint": "eslint \"**/*.js\" --ext js",
+    "lint:fix": "eslint \"**/*.js\" --ext js --fix"
   },
   "repository": {
     "type": "git",
@@ -17,16 +19,15 @@
   },
   "homepage": "https://github.com/itemsapi/elasticitems#readme",
   "dependencies": {
-    "bluebird": "^3.5.0",
-    "elastic.js": "^1.2.0",
-    "elasticsearch": "^13.3.1",
-    "lodash": "^4.17.4",
-    "slug": "^0.9.1"
+    "@elastic/elasticsearch": "^7.10.0",
+    "bluebird": "^3.7.2",
+    "bodybuilder": "^2.2.25",
+    "lodash": "^4.17.20"
   },
   "devDependencies": {
-    "elasticbulk": "^1.0.2",
+    "elasticbulk": "^1.0.28",
+    "eslint": "^7.16.0",
     "mocha": "^4.0.1",
-    "should": "^13.1.2",
     "sinon": "^3.3.0"
   }
 }

@@ -1,13 +1,13 @@
 # ElasticItems
 
-Higher level client for Elasticsearch in Node.js oriented on facets. It's a compact version of ItemsAPI without API.
+Elasticsearch 7.x client for JS with faceted search, custom features and simple interface
 
 ## Features
 
 - faceted search
 - full text
 - pagination
-- big data support
+- sorting
 
 ## Getting Started
 
@@ -56,6 +56,8 @@ Responsible for defining global configuration.
   * **<code>filters</code>** filtering items based on specific aggregations i.e. {tags: ['drama' , 'historical']}  
 
   * **<code>query_string</code>** i.e. "brand:Audi OR brand:Mercedes"
+
+  * **<code>facets_names</code>** make faceted search only for specific fields i.e. ['tags', 'genres']
 
   * **<code>fields</code>** search only in specifc fields i.e. ['name', 'description']. Missing parameter means search in all fields
 
@@ -117,6 +119,9 @@ Updates object in index
 
 Delete object from index
 
+### Notes
+
+- Full text search does not work on `keyword` type because this type is not tokenized. `keyword` type is great for faceted fields
 
 ## Tests
 

@@ -1,19 +1,15 @@
 const builder = require('./builder');
-const elasticsearch = require('elasticsearch');
 const searchHelper = require('./helpers/search');
-const Promise = require('bluebird');
 const _ = require('lodash');
-const ejs = require('elastic.js');
+const bodybuilder = require('bodybuilder');
 
 module.exports = function elasticitems(elastic_config, search_config) {
 
   search_config = search_config || {};
 
-  var client = new elasticsearch.Client({
-    host: elastic_config.host,
-    defer: function () {
-      return Promise.defer();
-    }
+  const { Client } = require('@elastic/elasticsearch');
+  const client = new Client({
+    node: elastic_config.host
   });
 
   /**
@@ -23,44 +19,56 @@ module.exports = function elasticitems(elastic_config, search_config) {
    * sort
    * filters
    */
-  var search = function(input, local_search_config) {
+  const search = async function(input, local_search_config) {
     input = input || {};
     input.per_page = input.per_page || 16;
 
-    var body = builder.searchBuilder(input, local_search_config || search_config)
 
-    return client.search({
+    const qb = builder.searchBuilder(input, local_search_config ||  search_config);
+
+    //console.log('start');
+    //console.log(body.build());
+
+
+    if (input.print_query) {
+      console.log(JSON.stringify(qb.build(), null, 2));
+    }
+
+    const { body } = await client.search({
       index: input.index || elastic_config.index,
-      type: input.type || elastic_config.type,
-      body: body
-    })
-    .then(result => {
-      return searchHelper.searchConverter(input, local_search_config || search_config, result);
-    })
-  }
-
-  var getBy = function(key, value) {
-
-    var body = ejs.Request()
-    var query = ejs.TermQuery(key, value)
-    body.query(query);
-
-    return client.search({
-      index: elastic_config.index,
-      type: elastic_config.type,
-      body: body,
-      _source: true
-    }).then(function(res) {
-      var result = res.hits.hits;
-      result = result.length ? _.extend({
-        id: result[0]._id
-      }, result[0]._source) : null;
-      return result;
+      track_total_hits: true,
+      //type: input.type || elastic_config.type,
+      body: qb.build()
     });
-  }
 
-  var similar = function(id, input) {
-    var query = {
+    //console.log(JSON.stringify(result.aggregations, null, 2));
+
+    const output = searchHelper.searchConverter(input, local_search_config || search_config, body);
+
+    return output;
+  };
+
+  const getBy = async function(key, value) {
+
+    const qb = bodybuilder().size(5).query('term', key, {
+      value: value,
+    });
+
+    const { body } = await client.search({
+      index: elastic_config.index,
+      body: qb.build(),
+      _source: true
+    });
+
+    let result = body.hits.hits;
+    result = result.length ? _.extend({
+      id: result[0]._id
+    }, result[0]._source) : null;
+    return result;
+  };
+
+  const similar = function(id, input) {
+    const query = {
       filtered: {
         query: {
           mlt: {
@@ -71,7 +79,7 @@ module.exports = function elasticitems(elastic_config, search_config) {
           }
         }
       }
-    }
+    };
 
     if (input.query_string) {
       query.filtered.filter = {
@@ -80,24 +88,24 @@ module.exports = function elasticitems(elastic_config, search_config) {
             query: input.query_string
           }
         }
-      }
+      };
     }
 
-    var body = {
+    const body = {
       query: query,
       //from: 0,
       //size: 5
-    }
+    };
 
     return client.search({
       index: input.index || search_config.index,
       type: input.type || search_config.type,
       body: body
     })
-    .then(function(result) {
-      return searchHelper.similarConverter(input, result);
-    })
-  }
+      .then(function(result) {
+        return searchHelper.similarConverter(input, result);
+      });
+  };
 
   return {
 
@@ -110,21 +118,21 @@ module.exports = function elasticitems(elastic_config, search_config) {
      * per_page
      * page
      */
-    aggregation: function(input) {
+    aggregation: async function(input) {
 
       input = input || {};
-      input.size = parseInt(input.size || 100)
-      input.per_page = parseInt(input.per_page || 10)
-      input.page = parseInt(input.page || 1)
-      input.sort = input.sort || '_count'
-      input.order = input.order || 'desc'
+      input.size = parseInt(input.size || 100);
+      input.per_page = parseInt(input.per_page || 10);
+      input.page = parseInt(input.page || 1);
+      input.sort = input.sort || '_count';
+      input.order = input.order || 'desc';
 
       if (!input.name && !input.field) {
-        return Promise.reject(new Error('Facet for given name doesn\'t exist or is incorrect'));
+        throw new Error('Facet for given name doesn\'t exist or is incorrect');
       }
 
       // creating local facet config and merging it with user input
-      var facet_config = {};
+      let facet_config = {};
 
       if (input.name) {
         facet_config = _.clone(search_config.aggregations[input.name]);
@@ -135,7 +143,7 @@ module.exports = function elasticitems(elastic_config, search_config) {
         facet_config.type = 'terms';
       }
 
-      facet_config.size = input.size;
+      facet_config.size = input.size || 10;
       facet_config.sort = input.sort;
       facet_config.order = input.order;
 
@@ -143,14 +151,14 @@ module.exports = function elasticitems(elastic_config, search_config) {
         facet_config.conjunction = input.conjunction;
       }
 
-      var key = input.name || input.field;
+      const key = input.name || input.field;
 
       // creating new lean search config only for single facet purpose
-      var local_search_config = {
+      const local_search_config = {
         aggregations: {
           [key]: facet_config
         }
-      }
+      };
 
       if (input.filters && _.isString(input.filters)) {
         input.filters = JSON.parse(input.filters);
@@ -161,99 +169,95 @@ module.exports = function elasticitems(elastic_config, search_config) {
         if (k !== key) {
           local_search_config.aggregations[k] = search_config.aggregations[k];
         }
-      })
+      });
 
-      return search(input, local_search_config)
-      .then(function(result) {
-        return searchHelper.facetsConverter(input, local_search_config, result);
-      })
-      .then(function(result) {
-        return _.find(result, {
-          name: key
-        })
-      })
-      .then(function(res) {
-        if (!res) {
-          throw new Error('Facet for given name doesn\'t exist or is incorrect');
-        }
+      //console.log(input);
+      //input.field = 'tags';
+      //console.log(local_search_config);
+      //console.log(key);
 
-        return searchHelper.processFacet(input, res);
-      })
+      //local_search_config.aggregations.tags.conjunction = true;
+
+      let result = await search(input, local_search_config);
+      result = searchHelper.facetsConverter(input, local_search_config, result);
+
+      //console.log('before find');
+      //console.log(key);
+      //console.log(result);
+      const res = _.find(result, {
+        name: key
+      });
+
+      if (!res) {
+        throw new Error('Facet for given name doesn\'t exist or is incorrect');
+      }
+
+      const output = searchHelper.processFacet(input, res);
+      return output;
     },
 
-    /**
-     * the same as aggregation
-     */
-    facet: function(input) {
-    },
-
-    partialUpdate: function(id, data, options) {
+    partialUpdate: async function(id, data, options) {
 
       options = options || {};
 
-      return client.update({
+      const { body } = await client.update({
         index: elastic_config.index,
-        type: elastic_config.type,
         id: id,
         refresh: options.refresh || false,
         body: {doc: data}
-      })
+      });
+
+      return body;
     },
 
     /**
      * add specific item
      */
-    add: function(data, options) {
+    add: async function(data, options) {
 
       options = options || {};
 
-      return client.index({
+      const result = await client.index({
         index: elastic_config.index,
-        type: elastic_config.type,
         id: data.id,
         refresh: options.refresh || false,
-        //body: data.body
         body: data
-      })
+      });
+
+      return result.body;
     },
 
     /**
      * delete specific item
      */
-    delete: function(id, options) {
+    delete: async function(id, options) {
 
       options = options || {};
 
-      return client.delete({
+      const { body } = await client.delete({
         index: elastic_config.index,
-        type: elastic_config.type,
         id: id,
         refresh: options.refresh || false
-      })
+      });
+
+      return body;
     },
 
     /**
      * find specific item
      */
-    get: function(id) {
-      return client.get({
+    get: async function(id) {
+      const { body } = await client.get({
         index: elastic_config.index,
-        type: elastic_config.type,
         id: id
-      })
-      .then(result => {
-        return result._source;
-      })
+      });
+
+      return body._source;
     },
 
     getBy: getBy,
-    similar: similar,
 
-    /**
-     * reindex items
-     * reinitialize fulltext search
-     */
-    reindex: function(newItems) {
-    },
-  }
-}
+    similar: similar
+
+  };
+};

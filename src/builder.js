@@ -1,378 +1,314 @@
 'use strict';
 
-var ejs = require('elastic.js');
-var collectionHelper = require('./helpers/collection');
-var geoHelper = require('./helpers/geo');
-var _ = require('lodash');
+//const collectionHelper = require('./helpers/collection');
+//const geoHelper = require('./helpers/geo');
+const bodybuilder = require('bodybuilder');
+const _ = require('lodash');
 
 /**
  * ItemsAPI search builder
  */
-exports.searchBuilder = function(data, collection) {
-  var page = data.page || 1;
-  var per_page = data.per_page || 10;
-  var offset = (page - 1) * per_page;
-  data.geoPoint = geoHelper.getGeoPoint(data.aroundLatLng)
+exports.searchBuilder = function(query, config) {
+  const page = query.page || 1;
+  const per_page = query.per_page || 10;
+  const facets_names_obj = query.facets_names ? _.keyBy(query.facets_names) : null;
 
-  var body = ejs.Request()
-  .size(per_page)
-  .from(offset);
+  //console.log(facets_names_obj);
 
-  var helper = collectionHelper(collection);
+  const offset = (page - 1) * per_page;
+  const aggs = config.aggregations;
+  const sortings = config.sortings;
 
-  var sortOptions = helper.getSorting(data.sort) || helper.getDefaultSorting();
-  var sort = exports.generateSort(sortOptions, data);
+  query = query || {};
 
-  if (sort && !_.isArray(sort)) {
-    body.sort(sort);
-  }
-
-  var aggregationsOptions = collection.aggregations;
+  const filters = query.filters || {};
+  const not_filters = query.not_filters || {};
 
 
-  var aggregationFilters = exports.generateAggregationFilters(aggregationsOptions, data);
-  // responsible for filtering items
-  var filters = _.values(aggregationFilters);
+  for (const [, value] of Object.entries(aggs)) {
 
-  body.filter(ejs.AndFilter(filters));
-  //body.filter(ejs.AndFilter(ejs.TermFilter('enabled', true)));
-
-  //console.log(JSON.stringify(body.toJSON()));
-
-  // generate aggretations according to options
-  var aggregations = exports.generateAggregations(aggregationsOptions, aggregationFilters, data);
-
-  // add all aggregations to body builder
-  _.each(aggregations, function(value) {
-    body.aggregation(value);
-  });
-
-  var fulltextQuery = ejs.MultiMatchQuery(
-    data.fields || '_all',
-    data.query
-  )
-
-  fulltextQuery.operator(data.operator || 'or');
-
-  //fulltextQuery.fuzziness(data.fuzziness);
-
-  if (data.key && data.val) {
-    body.query(ejs.TermQuery(data.key, data.val));
-  //} else if (data.query_string && data.query) {
-  } else {
-    //var query_mix = '(' + data.query_string + ') AND "' + data.query + '"'
-
-    var boolquery = ejs.BoolQuery()
-
-    if (data.query) {
-      // i.e. 'Al Pacino'
-      boolquery.must(fulltextQuery)
-    }
-
-    if (data.query_string) {
-      // i.e. 'actor:Pacino AND genre:Dram*'
-      boolquery.must(ejs.QueryStringQuery(
-        data.query_string
-      ))
-    }
-
-    if (data.ids && Array.isArray(data.ids)) {
-      boolquery.must(ejs.IdsQuery(
-        data.ids
-      ))
-    }
-
-    if (data.exclude_ids && Array.isArray(data.exclude_ids)) {
-      boolquery.mustNot(ejs.IdsQuery(
-        data.exclude_ids
-      ))
-    }
-
-    body.query(
-      boolquery
-    )
-  }
-
-  //log.debug(JSON.stringify(body.toJSON(), null, 2));
-
-  // we return json object instead of elastic.js object
-  // because elastic.js is not flexible in many cases
-  body = body.toJSON()
-
-  if (_.isArray(sort)) {
-    body['sort'] = sort
-  }
-
-  return body
-
-}
-
-/**
- * search documents (on low level)
- */
-exports.searchAsync = function(data, collection) {
-  var body = exports.searchBuilder(data, collection)
-
-  //console.log(body);
-  return elastic.search({
-    index: data.index,
-    type: data.type,
-    body: body,
-    _source: data.fields || true
-  })
-}
-
-/**
- * generate aggregations
- */
-exports.generateAggregations = function(aggregations, filters, input) {
-  var input = input || {};
-
-  // load only desired aggregations
-  if (_.isArray(input.load_aggs)) {
-    aggregations = _.pick(aggregations, input.load_aggs)
-  }
-
-  var count_field = input.facetName || input.fieldName
-  if (count_field && aggregations[count_field]) {
-    aggregations[count_field + '_internal_count'] = {
-      type: 'cardinality',
-      field: aggregations[count_field].field
+    if (!value.field) {
+      throw new Error('field is missing');
     }
   }
 
-  return _.map(aggregations, function(value_original, key) {
-    //console.log(key, value.field);
-    // we considering two different aggregations formatting (object | array)
+  const qb = bodybuilder();
 
-    // we need to clone otherwise if we set configuration in client as const
-    // then we get an error
-    // "TypeError: Cannot assign to read only property 'size' of object '#<Object>'"
-    var value = _.clone(value_original);
 
-    key = value.name || key;
+  qb.size(per_page);
+  qb.from(offset);
 
-    // default values
-    //value.type = value.type || 'terms';
-    //value.field = value.field || key;
-    //value.title = value.title || _.capitalize(key);
+  //qb.filterMinimumShouldMatch(1, true);
 
-    var filter = ejs.AndFilter(_.values(_.omit(filters, key)))
+  if (query.sort && sortings && sortings[query.sort]) {
 
-    if (value.conjunction === true) {
-      filter = ejs.AndFilter(_.values(filters));
-    }
+    const field = sortings[query.sort].field;
+    const order = sortings[query.sort].order;
 
-    // we should kick of filters from not_filters param
-    // new feature
-    if (input.not_filters && input.not_filters[key]) {
-      var not_filter = ejs.NotFilter(ejs.TermsFilter(value.field, input.not_filters[key]));
-      filter = ejs.AndFilter([filter, not_filter]);
-    }
-
-    var filterAggregation = ejs.FilterAggregation(key)
-    .filter(filter);
-
-    var aggregation = null;
-    if (value.type === 'terms') {
-
-      value.sort = _.includes(['_count', '_term'], value.sort) ? value.sort : '_count'
-      value.order = _.includes(['asc', 'desc'], value.order) ? value.order : 'desc'
-      value.size = value.size || 10
-
-      //log.debug(value)
-
-      aggregation = ejs.TermsAggregation(key)
-      .field(value.field)
-      .size(value.size)
-      .order(value.sort, value.order)
-
-      if (value.exclude) {
-        aggregation.exclude(value.exclude);
-      }
-    } else if (value.type === 'cardinality') {
-      aggregation = ejs.CardinalityAggregation(key).field(value.field);
-    } else if (value.type === 'range') {
-      aggregation = ejs.RangeAggregation(key).field(value.field);
-
-      _.each(value.ranges, function(v, k) {
-        aggregation.range(v.gte, v.lte, v.name);
-      });
-    } else if (value.type === 'is_empty') {
-      aggregation = ejs.MissingAggregation(key).field(value.field);
-      //aggregation = ejs.FilterAggregation(key).filter([ejs.MissingFilter(value.field), 'empty']);
-
-    } else if (value.type === 'geo_distance') {
-      aggregation = ejs.GeoDistanceAggregation(key)
-      .field(value.field)
-      .point(ejs.GeoPoint(input.geoPoint))
-      .unit(value.unit)
-
-      _.each(value.ranges, function(v, k) {
-        aggregation.range(v.gte, v.lte, v.name);
-      });
-    }
-    filterAggregation.agg(aggregation);
-    return filterAggregation;
-  });
-}
-
-/**
- * generate sorting
- */
-exports.generateSort = function(sortOptions, input) {
-  var input = input || {};
-
-  if (sortOptions) {
-
-    var sort = ejs.Sort(sortOptions.field)
-    // dont use query builder but directly return array of sorted fields
-    // it is multi field sorting
-    if (sortOptions.sort) {
-      return sortOptions.sort
-    }
-
-    if (!sortOptions.type || sortOptions.type === 'normal') {
-    } else if (sortOptions.type === 'geo') {
-      sort.geoDistance(ejs.GeoPoint(input.geoPoint)).unit('km')
-    }
-
-    if (sortOptions.order) {
-      sort.order(sortOptions.order);
-    }
-    return sort;
-  }
-}
-
-/**
- * generate terms filter for aggregation
- */
-module.exports.generateTermsFilter = function(aggregation, values, not_values) {
-
-  var filter;
-
-  if (_.isArray(values) && values.length) {
-    if (aggregation.conjunction === true) {
-      filter = ejs.AndFilter(_.map(values, function(val) {
-        return ejs.TermFilter(aggregation.field, val);
-      }));
-
-    } else {
-
-      filter = ejs.TermsFilter(aggregation.field, values);
-    }
+    qb.sort(field, order);
   }
 
-  if (not_values.length) {
-
-    var not_filter = ejs.NotFilter(ejs.TermsFilter(aggregation.field, not_values));
-
-    var filters = [not_filter];
-    if (filter) {
-      filters.push(filter);
-    }
-
-    filter = ejs.AndFilter(filters);
+  // @TODO
+  // make a functino for a query and filter to aggregations
+  if (query.query) {
+    qb.query('multi_match', {
+      query: query.query,
+      // @TODO rename field to query_fields
+      fields: query.fields,
+      // @TODO rename to query_operator
+      operator: query.operator
+    });
   }
 
-  return filter;
-}
-
-/**
- * generate range filter for aggregation
- */
-module.exports.generateRangeFilter = function(options, values) {
-  var rangeFilters = _.chain(values)
-  .map(function(value) {
-    var rangeOptions = _.find(options.ranges, {name: value});
-    // if input is incorrect
-    if (!rangeOptions) {
-      return null;
-    }
-    var rangeFilter = ejs.RangeFilter(options.field);
-    if (rangeOptions.gte) {
-      rangeFilter.gte(rangeOptions.gte);
-    }
-    if (rangeOptions.lte) {
-      rangeFilter.lte(rangeOptions.lte);
-    }
-    return rangeFilter;
-  })
-  .filter(function(val) {
-    return val !== null;
-  })
-  .value()
-
-  return ejs.OrFilter(rangeFilters);
-}
-
-exports.getEnabledFilter = function(collection, data) {
-  var enabledFilter
-
-  if (data.enabled === true) {
-    enabledFilter = ejs.AndFilter(
-      ejs.OrFilter([
-        ejs.TermFilter('enabled', 'T'),
-        ejs.MissingFilter('enabled')
-      ])
-    )
-  } else if (data.enabled === false) {
-    enabledFilter = ejs.AndFilter(
-      ejs.TermFilter('enabled', 'F')
-    )
+  if (query.query_string) {
+    qb.query('query_string', { query: query.query_string });
   }
 
-  return enabledFilter;
-}
+  if (query.ids && Array.isArray(query.ids)) {
+    qb.query('ids', { values: query.ids });
+  }
 
-/*exports.generateIsEmptyFilter = function(aggregation) {
+  if (query.exclude_ids && Array.isArray(query.exclude_ids)) {
+    qb.notQuery('ids', { values: query.exclude_ids });
+  }
 
-  return ejs.AndFilter(
-    ejs.OrFilter([
-      ejs.MissingFilter('ecommerce')
-    ]));
-}*/
+  //console.log('filters');
+  //console.log(filters);
 
-exports.generateIsEmptyFilter = function(aggregation) {
+  // global filtering by filters
+  // it filters all aggregations except global one
+  for (const [key, values] of Object.entries(filters)) {
 
-  return ejs.AndFilter(
-    ejs.OrFilter([
-      ejs.MissingFilter(aggregation.field)
-    ]));
-}
+    // dis OR con AND
+    for (const value of values) {
+      //qb.filter('term', key, value)
 
-/**
- * generate aggregation filters
- */
-exports.generateAggregationFilters = function(aggregations, data) {
+      //console.log('key');
+      //console.log(aggs[key]);
 
-  var aggregation_filters = {};
+      //console.log(key);
 
-  _.each(aggregations, function(value, key) {
+      if (aggs[key].type === 'range') {
 
-    if (1 || value.length) {
-      var aggregation = aggregations[key];
+        const range = aggs[key].ranges.find(element => element.key === value);
 
-      if (!aggregation) {
-        throw new Error('aggregation "' + key + '" is not defined in conf')
-      }
+        // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-bucket-range-aggregation.html
+        if (range) {
 
-      var values = data.filters && data.filters[key] ? data.filters[key] : [];
-      var not_values = data.not_filters && data.not_filters[key] ? data.not_filters[key] : [];
+          if (aggs[key].conjunction !== false) {
+            qb.andFilter('range', aggs[key].field, {
+              gte: range.from,
+              lt: range.to
+            });
+          } else {
 
-      //if ((_.isArray(values) && values.length) || (_.isArray(not_values) && not_values.length)) {
-      if (values.length || not_values.length) {
+            qb.orFilter('range', aggs[key].field, {
+              gte: range.from,
+              lt: range.to
+            });
+          }
+        }
 
-        if (aggregation.type === 'terms') {
-          aggregation_filters[key] = module.exports.generateTermsFilter(aggregation, values, not_values);
-        } else if (aggregation.type === 'range') {
-          aggregation_filters[key] = module.exports.generateRangeFilter(aggregation, values);
-        } else if (aggregation.type === 'is_empty') {
-          aggregation_filters[key] = exports.generateIsEmptyFilter(aggregation, values);
+      } else {
+
+        if (aggs[key].conjunction !== false || values.length === 1) {
+          qb.andFilter('term', aggs[key].field, value);
+        } else {
+          qb.orFilter('term', aggs[key].field, value);
         }
       }
     }
+  }
+
+  for (const [key, values] of Object.entries(not_filters)) {
+    for (const value of values) {
+
+      if (aggs[key].type === 'range') {
+        const range = aggs[key].ranges.find(element => element.key === value);
+        if (range) {
+          qb.notFilter('range', aggs[key].field, {
+            gte: range.from,
+            lt: range.to
+          });
+        }
+      } else {
+        qb.notFilter('term', aggs[key].field, value);
+      }
+    }
+  }
+
+  // conjunctive facets
+  for (const [key, value] of Object.entries(aggs)) {
+
+    if (value.conjunction !== false) {
+
+      const options = {
+        size: value.size
+      };
+
+      const order = value.order ? value.order : 'desc';
+
+      if (value.sort) {
+
+        const sort = value.sort === '_term' ? '_key' : value.sort;
+
+        options.order = {
+          [sort]: order
+        };
+      }
+
+      if (facets_names_obj === null || facets_names_obj[key]) {
+        if (value.type === 'range') {
+          qb.aggregation('range', value.field, key, {
+            ranges: value.ranges
+          });
+        } else {
+          qb.aggregation('terms', value.field, key, options);
+        }
+      }
+    }
+  }
+
+  // disjunctive facets (global aggregations)
+  qb.aggregation('global', {}, 'global', a => {
+
+    // @TODO add global conjunction filter and query here
+    for (const [key, value] of Object.entries(aggs)) {
+
+      if (value.conjunction === false) {
+
+        if (facets_names_obj === null || facets_names_obj[key]) {
+
+        a.aggregation('filter', key, key, () => {
+
+          // empty bool is slow
+          const filter = bodybuilder().andFilter('bool', b => {
+            for (const [key2, values2] of Object.entries(filters)) {
+              for (const value2 of values2) {
+                if (key !== key2) {
+
+
+                  if (aggs[key2].type === 'range') {
+
+                    const range = aggs[key2].ranges.find(element => element.key === value2);
+
+                    if (range) {
+                      if (aggs[key2].conjunction !== false) {
+                        b.andFilter('range', aggs[key2].field, {
+                          gte: range.from,
+                          lt: range.to
+                        });
+                      } else {
+                        b.orFilter('range', aggs[key2].field, {
+                          gte: range.from,
+                          lt: range.to
+                        });
+                      }
+                    }
+
+                  } else {
+                    if (aggs[key2].conjunction !== false) {
+                      b.andFilter('term', key2, value2);
+                    } else {
+                      b.orFilter('term', key2, value2);
+                    }
+                  }
+                }
+              }
+            }
+
+
+            return b;
+          });
+
+          const options = {
+            size: value.size
+          };
+
+          const order = value.order ? value.order : 'desc';
+
+          if (value.sort) {
+            const sort = value.sort === '_term' ? '_key' : value.sort;
+
+            options.order = {
+              [sort]: order
+            };
+          }
+
+          if (facets_names_obj === null || facets_names_obj[key]) {
+
+            if (value.type === 'range') {
+              filter.aggregation('range', value.field, key, {
+                ranges: value.ranges
+              });
+            } else {
+              filter.aggregation('terms', value.field, key, options);
+            }
+          }
+
+          /***
+           * global filters copy
+           */
+          for (const [key, values] of Object.entries(not_filters)) {
+            for (const value of values) {
+
+              if (aggs[key].type === 'range') {
+                const range = aggs[key].ranges.find(element => element.key === value);
+                if (range) {
+                  filter.notFilter('range', aggs[key].field, {
+                    gte: range.from,
+                    lt: range.to
+                  });
+                }
+              } else {
+                filter.notFilter('term', aggs[key].field, value);
+              }
+            }
+          }
+
+          /*
+           * put it to helper function
+           */
+          if (query.query) {
+            filter.filter('multi_match', {
+              query: query.query,
+              // @TODO rename field to query_fields
+              fields: query.fields,
+              // @TODO rename to query_operator
+              operator: query.operator
+            });
+          }
+
+          if (query.ids) {
+            filter.filter('ids', { values: query.ids });
+          }
+
+          if (query.query_string) {
+            filter.filter('query_string', { query: query.query_string });
+          }
+
+          if (query.ids && Array.isArray(query.ids)) {
+            filter.filter('ids', { values: query.ids });
+          }
+
+          if (query.exclude_ids && Array.isArray(query.exclude_ids)) {
+            filter.notFilter('ids', { values: query.exclude_ids });
+          }
+
+          /***
+           * global filters copy end
+           */
+          return filter;
+        });
+      }
+
+      }
+    }
+
+    return a;
   });
 
-  return aggregation_filters;
-}
+  // no slow post filter
+  //console.log(JSON.stringify(qb.build(), null, 2));
+  return qb;
+};

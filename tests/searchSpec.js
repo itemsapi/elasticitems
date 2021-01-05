@@ -1,324 +1,499 @@
-var assert = require('assert');
-var should = require('should');
-var sinon = require('sinon');
-var searchHelper = require('./../src/helpers/search');
-var ElasticItems = require('./../src/index');
-var elastic;
-var elasticitems;
-var search_config = require('./fixtures/movies-collection.json');
-var movies = require('./fixtures/movies.json');
-var HOST = process.env.HOST || 'http://127.0.0.1:9200';
-var INDEX = 'test';
-const elasticsearch = require('elasticsearch');
-const Promise = require('bluebird');
+const assert = require('assert');
+const ElasticItems = require('./../src/index');
+const _ = require('lodash');
+const movies_config = require('./fixtures/movies_config.json');
+const movies_schema = require('./fixtures/movies_schema.json');
+const movies = _.map(require('./fixtures/movies.json'), v => {
+  return v;
+});
+
+const HOST = process.env.HOST || 'http://localhost:9205';
+const INDEX = 'test';
 const elasticbulk = require('elasticbulk');
+//const elasticbulk = require('/home/mateusz/node/elasticbulk');
+
+const elasticitems = ElasticItems({
+  host: HOST,
+  index: INDEX,
+  type: INDEX,
+}, movies_config);
+
+const { Client } = require('@elastic/elasticsearch');
+const elastic = new Client({
+  node: HOST
+});
 
 describe('should search movies', function() {
 
   before(async function() {
 
-    elasticitems = ElasticItems({
-      host: HOST,
-      index: INDEX,
-      type: INDEX,
-    }, search_config);
-
-    elastic = new elasticsearch.Client({
-      host: HOST,
-      defer: function () {
-        return Promise.defer();
-      }
-    });
-
     await elastic.indices.delete({
-      index: INDEX
-    })
-    .catch(v => {
-    })
+      index: INDEX,
+      ignore_unavailable: true,
+    });
 
     await elasticbulk.import(movies, {
       index: INDEX,
-      host: HOST
-    }, search_config.schema)
-    .delay(1000)
-  })
+      host: HOST,
+      refresh: true,
+      debug: true,
+      engine: 'elasticsearch7x',
+    }, movies_schema);
+  });
 
   describe('should search movies', function() {
 
     it('makes a simple search', async function() {
 
-      var v = await elasticitems.search()
-      //console.log(v.data.items);
-      assert.equal(20, v.pagination.total)
-      assert.equal(16, v.pagination.per_page)
-      assert.equal(1, v.pagination.page)
-      assert.equal(16, v.data.items.length)
+      const v = await elasticitems.search();
+
+      assert.equal(20, v.pagination.total);
+      assert.equal(16, v.pagination.per_page);
+      assert.equal(1, v.pagination.page);
+      assert.equal(16, v.data.items.length);
 
       //console.log(v.data.items[0]);
-      assert.equal(undefined, v.data.items[0].score)
+      assert.equal(undefined, v.data.items[0].score);
 
       //console.log(v.data.aggregations.rating);
-      assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count)
-      assert.equal('8 - 9', v.data.aggregations.rating.buckets[0].key)
-      assert.equal(4, v.data.aggregations.rating.buckets[1].doc_count)
-      //assert.equal(undefined, v.data.aggregations.tags.doc_count)
-      assert.equal(92, v.data.aggregations.tags.buckets.length)
-      assert.equal('Tags', v.data.aggregations.tags.title)
-      assert.equal(262, v.data.aggregations.actors.buckets.length)
-      assert.equal(262, v.data.aggregations.actors_or.buckets.length)
+      console.log(v.data.aggregations.rating_or);
+      assert.equal(16, v.data.aggregations.rating_or.buckets[0].doc_count);
+      assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count);
+      assert.equal('8 - 9', v.data.aggregations.rating.buckets[0].key);
+      assert.equal('8 - 9', v.data.aggregations.rating_or.buckets[0].key);
+      assert.equal(4, v.data.aggregations.rating.buckets[1].doc_count);
+      assert.equal(92, v.data.aggregations.tags.buckets.length);
+      assert.equal('Tags', v.data.aggregations.tags.title);
+      assert.equal(262, v.data.aggregations.actors.buckets.length);
+      assert.equal(262, v.data.aggregations.actors_or.buckets.length);
     });
 
     it('should makes a full text search', async function() {
 
-      var v = await elasticitems.search({
+      const v = await elasticitems.search({
+        query: 'redemption shawshank aaa'
+      });
+
+      assert.equal(3, v.pagination.total);
+      assert.equal('The Shawshank Redemption', v.data.items[0].name);
+    });
+
+    it('should makes a full text search within keyword type', async function() {
+
+      const v = await elasticitems.search({
+        query: 'biography'
+      });
+
+      assert.equal(3, v.pagination.total);
+    });
+
+    it('should makes a full text search', async function() {
+
+      const v = await elasticitems.search({
         query_string: 'rating:<=9.3 AND rating:>=9.3',
         query: 'redemption shawshank'
-      })
+      });
 
-      assert.equal(1, v.pagination.total)
-      assert.equal('The Shawshank Redemption', v.data.items[0].name)
+      assert.equal(1, v.pagination.total);
+      assert.equal('The Shawshank Redemption', v.data.items[0].name);
+      assert.equal(5, v.data.aggregations.tags.buckets.length);
+      assert.equal(5, v.data.aggregations.tags_or.buckets.length);
     });
 
     xit('should makes a full text search with fuziness', async function() {
 
-      var v = await elasticitems.search({
+      const v = await elasticitems.search({
         query_string: 'rating:<=9.3 AND rating:>=9.3',
         operator: 'and',
         query: 'imprisoned numbers',
         fuziness: 1.0,
         fields: ['description']
-      })
+      });
 
-      assert.equal(1, v.pagination.total)
+      assert.equal(1, v.pagination.total);
     });
 
     it('should makes a full text search over specific fields', async function() {
 
-      var v = await elasticitems.search({
+      let v = await elasticitems.search({
         query_string: 'rating:<=9.3 AND rating:>=9.3',
         query: 'imprisoned number years',
         fields: ['description']
-      })
+      });
 
-      assert.equal(1, v.pagination.total)
+      assert.equal(1, v.pagination.total);
 
-      var v = await elasticitems.search({
+      v = await elasticitems.search({
         query_string: 'rating:<=9.3 AND rating:>=9.3',
         query: 'imprisoned number years',
         fields: ['name', 'description']
-      })
+      });
 
-      assert.equal(1, v.pagination.total)
+      assert.equal(1, v.pagination.total);
 
-      var v = await elasticitems.search({
+      v = await elasticitems.search({
         query_string: 'rating:<=9.3 AND rating:>=9.3',
         query: 'imprisoned number years',
         fields: ['name']
-      })
+      });
 
-      assert.equal(0, v.pagination.total)
+      assert.equal(0, v.pagination.total);
+      assert.equal(0, v.data.aggregations.country.buckets.length);
     });
 
     it('should makes a full text search and search by ids', async function() {
 
-      var v = await elasticitems.search({
-        query_string: 'rating:<=9.3 AND rating:>=9.3',
-        query: 'imprisoned number years',
-        fields: ['description'],
+      const v = await elasticitems.search({
         ids: ['1']
-      })
+      });
 
-      assert.equal(1, v.pagination.total)
+      assert.equal(1, v.pagination.total);
+      assert.equal(5, v.data.aggregations.tags.buckets.length);
+      assert.equal(5, v.data.aggregations.tags_or.buckets.length);
 
-      var v = await elasticitems.search({
+      assert.equal(0, v.data.aggregations.rating.buckets[0].doc_count);
+      assert.equal(1, v.data.aggregations.rating.buckets[1].doc_count);
+      assert.equal('9 - 10', v.data.aggregations.rating.buckets[1].key);
+    });
+
+    it('should makes a full text search and search by ids', async function() {
+
+      let v = await elasticitems.search({
         query_string: 'rating:<=9.3 AND rating:>=9.3',
         query: 'imprisoned number years',
         fields: ['description'],
         ids: ['2']
-      })
+      });
 
-      assert.equal(0, v.pagination.total)
+      assert.equal(0, v.pagination.total);
 
-      var v = await elasticitems.search({
+      v = await elasticitems.search({
         query_string: 'rating:<=9.3 AND rating:>=9.3',
         query: 'imprisoned number years',
         fields: ['description'],
         exclude_ids: ['2']
-      })
+      });
 
-      assert.equal(1, v.pagination.total)
+      assert.equal(1, v.pagination.total);
 
-      var v = await elasticitems.search({
+      v = await elasticitems.search({
         query_string: 'rating:<=9.3 AND rating:>=9.3',
         query: 'imprisoned number years',
         fields: ['description'],
         exclude_ids: ['1']
-      })
+      });
 
-      assert.equal(0, v.pagination.total)
+      assert.equal(0, v.pagination.total);
 
-      var v = await elasticitems.search({
+      v = await elasticitems.search({
         ids: ['1', '2']
-      })
+      });
 
-      assert.equal(2, v.pagination.total)
+      assert.equal(2, v.pagination.total);
 
-      var v = await elasticitems.search({
+      v = await elasticitems.search({
         ids: ['1', '2'],
         exclude_ids: ['2']
-      })
+      });
 
-      assert.equal(1, v.pagination.total)
+      assert.equal(1, v.pagination.total);
+
+      assert.equal('USA', v.data.aggregations.country.buckets[0].key);
+      assert.equal(1, v.data.aggregations.country.buckets[0].doc_count);
     });
 
     it('should makes a full text search with and | or operator', async function() {
 
-      var v = await elasticitems.search({
+      let v = await elasticitems.search({
         query_string: 'rating:<=9.3 AND rating:>=9.3',
         query: 'redemption shawshank wordword'
-      })
+      });
 
-      assert.equal(1, v.pagination.total)
+      assert.equal(1, v.pagination.total);
 
-      var v = await elasticitems.search({
+      v = await elasticitems.search({
         query_string: 'rating:<=9.3 AND rating:>=9.3',
         operator: 'and',
         query: 'redemption shawshank wordword'
-      })
+      });
 
-      assert.equal(0, v.pagination.total)
+      assert.equal(0, v.pagination.total);
+      assert.equal(0, v.data.aggregations.country.buckets.length);
     });
 
     it('should search with query_string', async function() {
 
-      var v = await elasticitems.search({
+      const v = await elasticitems.search({
         query_string: 'rating:<=9.3 AND rating:>=9.3'
-      })
+      });
 
-      assert.equal(1, v.pagination.total)
-      assert.equal('The Shawshank Redemption', v.data.items[0].name)
+      assert.equal(1, v.pagination.total);
+      assert.equal('The Shawshank Redemption', v.data.items[0].name);
+
+      assert.equal('USA', v.data.aggregations.country.buckets[0].key);
+      assert.equal(1, v.data.aggregations.country.buckets[0].doc_count);
     });
 
-    it('makes a simple sort', function(done) {
 
-      elasticitems.search({
+    it('makes a simple sort', async function() {
+
+      const v = await elasticitems.search({
         per_page: 1,
         sort: 'name'
-      })
-      .then(v => {
-        assert.equal('12 Angry Men', v.data.items[0].name)
-        done();
-      })
+      });
+      assert.equal('12 Angry Men', v.data.items[0].name);
     });
 
-    it('makes a simple facet filtering', function(done) {
 
-      elasticitems.search({
+
+
+    it('makes a simple facet filtering', async function() {
+
+      const v = await elasticitems.search({
         per_page: 1,
         filters: {
           tags: ['epic', 'middle earth']
         }
-      })
-      .then(v => {
-        assert.equal(2, v.pagination.total)
-        assert.equal(7, v.data.aggregations.tags.buckets.length)
-        done();
-      })
+      });
+      assert.equal(2, v.pagination.total);
+      assert.equal(7, v.data.aggregations.tags.buckets.length);
+
+      //assert.equal('New Zealand', v.data.aggregations.country.buckets[0].key);
+      //assert.equal(2, v.data.aggregations.country.buckets[0].doc_count);
+      //assert.equal('USA', v.data.aggregations.country.buckets[1].key);
+      //assert.equal(2, v.data.aggregations.country.buckets[1].doc_count);
+
     });
 
-    it('makes a simple facet filtering with or (disjunctive)', function(done) {
+    it('makes a simple facet filtering only for a given facets name', async function() {
 
-      elasticitems.search({
+      let v = await elasticitems.search({
+        per_page: 1,
+        facets_names: ['tags']
+      });
+      assert.equal(20, v.pagination.total);
+      assert.deepEqual(['tags'], Object.keys(v.data.aggregations));
+
+      v = await elasticitems.search({
+        per_page: 1,
+        facets_names: ['tags', 'rating_or']
+      });
+      assert.equal(20, v.pagination.total);
+      assert.deepEqual(['tags', 'rating_or'], Object.keys(v.data.aggregations));
+    });
+
+    it('makes a simple facet filtering with or (disjunctive)', async function() {
+
+      const v = await elasticitems.search({
+        per_page: 1,
+        filters: {
+          tags_or: ['epic']
+        }
+      });
+
+      assert.equal(2, v.pagination.total);
+      assert.equal(92, v.data.aggregations.tags_or.buckets.length);
+
+      assert.equal('New Zealand', v.data.aggregations.country.buckets[0].key);
+      assert.equal(2, v.data.aggregations.country.buckets[0].doc_count);
+      assert.equal('USA', v.data.aggregations.country.buckets[1].key);
+      assert.equal(2, v.data.aggregations.country.buckets[1].doc_count);
+    });
+
+    it('makes a simple facet filtering with or (disjunctive)', async function() {
+
+      const v = await elasticitems.search({
         per_page: 1,
         filters: {
           tags_or: ['epic', '1950s']
         }
-      })
-      .then(v => {
-        assert.equal(3, v.pagination.total)
-        assert.equal(92, v.data.aggregations.tags_or.buckets.length)
-        done();
-      })
+      });
+
+      assert.equal(3, v.pagination.total);
+      assert.equal(92, v.data.aggregations.tags_or.buckets.length);
+
+      console.log(v.data.aggregations.country);
+
+      assert.equal('USA', v.data.aggregations.country.buckets[0].key);
+      assert.equal(3, v.data.aggregations.country.buckets[0].doc_count);
+      assert.equal('New Zealand', v.data.aggregations.country.buckets[1].key);
+      assert.equal(2, v.data.aggregations.country.buckets[1].doc_count);
     });
 
-    it('makes a simple facet filtering using NOT ', function(done) {
+    it('makes a simple facet filtering using NOT ', async function() {
 
-      elasticitems.search({
+      const v = await elasticitems.search({
         per_page: 1,
         not_filters: {
           tags: ['epic', '1950s']
         }
-      })
-      .then(v => {
-        assert.equal(17, v.pagination.total)
-        assert.equal(83, v.data.aggregations.tags_or.buckets.length)
-        done();
-      })
+      });
+
+      assert.equal(17, v.pagination.total);
+      // elasticitems
+      assert.equal(83, v.data.aggregations.tags_or.buckets.length);
+      // itemsapi (bug)
+      //assert.equal(92, v.data.aggregations.tags_or.buckets.length)
+
+      assert.equal('USA', v.data.aggregations.country.buckets[0].key);
+      assert.equal(16, v.data.aggregations.country.buckets[0].doc_count);
+      assert.equal('UK', v.data.aggregations.country.buckets[1].key);
+      assert.equal(2, v.data.aggregations.country.buckets[1].doc_count);
     });
 
-    it('makes a simple facet filtering with ranges', function(done) {
 
-      elasticitems.search({
+    it('makes a simple facet filtering on two names', async function() {
+
+      const v = await elasticitems.search({
+        per_page: 1,
+        facets_names: ['tags_or', 'actors_or'],
+        filters: {
+          tags_or: ['mafia'],
+          actors_or: ['Al Pacino']
+        }
+      });
+
+      //console.log(v.data.aggregations);
+      console.log(v);
+
+      assert.equal(2, v.pagination.total);
+      assert.equal(9, v.data.aggregations.tags_or.buckets.length);
+      assert.equal(38, v.data.aggregations.actors_or.buckets.length);
+    });
+
+    it('makes a simple facet filtering on no names', async function() {
+
+      const v = await elasticitems.search({
+        per_page: 1,
+        facets_names: [],
+        filters: {
+          tags_or: ['mafia'],
+          actors_or: ['Al Pacino']
+        }
+      });
+
+      assert.equal(2, v.pagination.total);
+    });
+
+    it('makes a simple facet filtering with ranges', async function() {
+
+      let v = await elasticitems.search({
         per_page: 1,
         filters: {
           rating: ['8 - 9']
         }
-      })
-      .then(v => {
-        assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count)
-        done();
-      })
+      });
+
+      assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count);
+      assert.equal(0, v.data.aggregations.rating.buckets[1].doc_count);
+      assert.equal(16, v.pagination.total);
+
+      v = await elasticitems.search({
+        per_page: 1,
+        filters: {
+          rating: ['9 - 10']
+        }
+      });
+
+      assert.equal(0, v.data.aggregations.rating.buckets[0].doc_count);
+      assert.equal(4, v.data.aggregations.rating.buckets[1].doc_count);
+      assert.equal(4, v.pagination.total);
+
+      v = await elasticitems.search({
+        per_page: 1,
+        not_filters: {
+          rating: ['9 - 10']
+        }
+      });
+
+      assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count);
+      assert.equal(0, v.data.aggregations.rating.buckets[1].doc_count);
+      assert.equal(16, v.pagination.total);
+
+      v = await elasticitems.search({
+        per_page: 1,
+        not_filters: {
+          rating: ['8 - 9', '9 - 10']
+        }
+      });
+
+      assert.equal(0, v.data.aggregations.rating.buckets[0].doc_count);
+      assert.equal(0, v.data.aggregations.rating.buckets[1].doc_count);
+      assert.equal(0, v.pagination.total);
     });
 
-    xit('makes a simple facet filtering using is empty facet', function(done) {
+    it('makes a simple facet filtering with disjunctive ranges', async function() {
 
-      elasticitems.search({
+      let v = await elasticitems.search({
         per_page: 1,
-        /*filters: {
-          empty_tags: ['epic', '1950s']
-          }*/
-        })
-      .then(v => {
-        console.log(v.data.aggregations.empty_tags);
-        //assert.equal(17, v.pagination.total)
-        //assert.equal(83, v.data.aggregations.empty_tags)
-        done();
-        })
+        filters: {
+          rating_or: ['8 - 9']
+        }
       });
+
+      //console.log(v.data.aggregations.rating);
+
+      assert.equal(16, v.data.aggregations.rating_or.buckets[0].doc_count);
+      assert.equal(4, v.data.aggregations.rating_or.buckets[1].doc_count);
+
+      assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count);
+      assert.equal(0, v.data.aggregations.rating.buckets[1].doc_count);
+      assert.equal(16, v.pagination.total);
+
+      v = await elasticitems.search({
+        per_page: 1,
+        filters: {
+          rating_or: ['9 - 10']
+        }
+      });
+
+      assert.equal(16, v.data.aggregations.rating_or.buckets[0].doc_count);
+      assert.equal(4, v.data.aggregations.rating_or.buckets[1].doc_count);
+
+      assert.equal(0, v.data.aggregations.rating.buckets[0].doc_count);
+      assert.equal(4, v.data.aggregations.rating.buckets[1].doc_count);
+
+      assert.equal(2, v.data.aggregations.tags.buckets[0].doc_count);
+      assert.equal('mafia', v.data.aggregations.tags.buckets[0].key);
+
+      assert.equal(2, v.data.aggregations.tags_or.buckets[0].doc_count);
+      assert.equal('mafia', v.data.aggregations.tags_or.buckets[0].key);
+
+      assert.equal(4, v.pagination.total);
+
+      v = await elasticitems.search({
+        per_page: 1,
+        filters: {
+          rating_or: ['8 - 9', '9 - 10']
+        }
+      });
+
+      assert.equal(16, v.data.aggregations.rating_or.buckets[0].doc_count);
+      assert.equal(4, v.data.aggregations.rating_or.buckets[1].doc_count);
+
+      assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count);
+      assert.equal(4, v.data.aggregations.rating.buckets[1].doc_count);
+
+      assert.equal(3, v.data.aggregations.tags.buckets[0].doc_count);
+      assert.equal('mafia', v.data.aggregations.tags.buckets[0].key);
+
+      assert.equal(3, v.data.aggregations.tags_or.buckets[0].doc_count);
+      assert.equal('mafia', v.data.aggregations.tags_or.buckets[0].key);
+
+      assert.equal(20, v.pagination.total);
+    });
+
   });
 
   describe('makes single facet query', function() {
 
-    it('should make single facet query on movies', async function() {
-
-      var spy = sinon.spy(searchHelper, 'facetsConverter');
-
-      var v = await elasticitems.aggregation({
-        name: 'tags',
-        //size: 30,
-        per_page: 5
-      })
-
-      assert.equal('mafia', v.data.buckets[0].key);
-      assert.equal(3, v.data.buckets[0].doc_count);
-      assert.equal(5, v.data.buckets.length);
-      assert.equal(5, v.pagination.per_page);
-      assert.equal(92, v.pagination.total);
-      assert.equal(spy.callCount, 1);
-      assert.equal(92, spy.firstCall.args[2].data.aggregations.tags.buckets.length);
-      assert.equal('tags', spy.firstCall.args[1].aggregations.tags.field);
-      assert.equal(3, spy.firstCall.args.length);
-      spy.restore();
-
-    });
-
     it('should make single facet query on movies with size', async function() {
 
-      var v = await elasticitems.aggregation({
+      const v = await elasticitems.aggregation({
         name: 'tags',
         size: 30,
         per_page: 5
-      })
+      });
 
       assert.equal(5, v.data.buckets.length);
       assert.equal('mafia', v.data.buckets[0].key);
@@ -329,7 +504,7 @@ describe('should search movies', function() {
 
     it('should make single facet query on movies with filters', async function() {
 
-      var v = await elasticitems.aggregation({
+      const v = await elasticitems.aggregation({
         name: 'tags',
         filters: {
           tags: ['mafia'],
@@ -337,7 +512,7 @@ describe('should search movies', function() {
         },
         size: 30,
         per_page: 5
-      })
+      });
 
       assert.equal('mafia', v.data.buckets[2].key);
       assert.equal(1, v.data.buckets[2].doc_count);
@@ -348,7 +523,7 @@ describe('should search movies', function() {
 
     it('should make single facet query on movies with not filters', async function() {
 
-      var v = await elasticitems.aggregation({
+      const v = await elasticitems.aggregation({
         name: 'tags',
         filters: {
           tags: ['mafia'],
@@ -358,14 +533,14 @@ describe('should search movies', function() {
         },
         size: 30,
         per_page: 5
-      })
+      });
 
       assert.equal(9, v.pagination.total);
     });
 
     it('should make single facet query on movies with search query', async function() {
 
-      var v = await elasticitems.aggregation({
+      const v = await elasticitems.aggregation({
         name: 'tags',
         query: 'biography',
         filters: {
@@ -373,7 +548,7 @@ describe('should search movies', function() {
         },
         size: 30,
         per_page: 5
-      })
+      });
 
       assert.equal('mafia', v.data.buckets[2].key);
       assert.equal(1, v.data.buckets[2].doc_count);
@@ -384,7 +559,7 @@ describe('should search movies', function() {
 
     it('should make single facet query on movies with search query_string', async function() {
 
-      var v = await elasticitems.aggregation({
+      const v = await elasticitems.aggregation({
         name: 'tags',
         query_string: 'biography AND mafia',
         filters: {
@@ -392,7 +567,7 @@ describe('should search movies', function() {
         },
         size: 30,
         per_page: 5
-      })
+      });
 
       assert.equal('mafia', v.data.buckets[2].key);
       assert.equal(1, v.data.buckets[2].doc_count);
@@ -401,102 +576,83 @@ describe('should search movies', function() {
       assert.equal(5, v.pagination.total);
     });
 
-    it('should make single facet query on movies with aggregation_query', function(done) {
+    it('should make single facet query on movies with aggregation_query', async function() {
 
-      elasticitems.aggregation({
+      const v = await elasticitems.aggregation({
         name: 'tags',
         aggregation_query: 'ma',
         per_page: 5
-      })
-      .then(v => {
-        assert.equal(1, v.data.buckets.length);
-        assert.equal(5, v.pagination.per_page);
-        assert.equal(1, v.pagination.total);
-        done();
-      })
+      });
+
+      assert.equal(1, v.data.buckets.length);
+      assert.equal(5, v.pagination.per_page);
+      assert.equal(1, v.pagination.total);
+
     });
 
-    it('should make single facet query on movies with alphabetical sorting', function(done) {
+    it('should make single facet query on movies with alphabetical sorting', async function() {
 
-      elasticitems.aggregation({
+      const v = await elasticitems.aggregation({
         name: 'tags',
         order: 'desc',
-        sort: '_term'
-      })
-      .then(v => {
-        assert.equal('wrongful imprisonment', v.data.buckets[0].key);
-        assert.equal(1, v.data.buckets[0].doc_count);
-        done();
-      })
+        sort: '_key'
+      });
+
+      assert.equal('wrongful imprisonment', v.data.buckets[0].key);
+      assert.equal(1, v.data.buckets[0].doc_count);
     });
 
-    it('should make single facet query on movies with field param', function(done) {
+    it('should make single facet query on movies with field param', async function() {
 
-      elasticitems.aggregation({
+      const v = await elasticitems.aggregation({
         field: 'tags',
         order: 'desc',
-        sort: '_term'
-      })
-      .then(v => {
-        assert.equal('wrongful imprisonment', v.data.buckets[0].key);
-        assert.equal(1, v.data.buckets[0].doc_count);
-        done();
-      })
+        sort: '_key'
+      });
+
+      assert.equal('wrongful imprisonment', v.data.buckets[0].key);
+      assert.equal(1, v.data.buckets[0].doc_count);
     });
 
-    it('should make single facet query on movies with field param', function(done) {
+    it('should make single facet query on movies with field param', async function() {
 
-      elasticitems.aggregation({
-        field: 'genres',
+      const v = await elasticitems.aggregation({
+        field: 'genres.raw',
         order: 'asc',
+        conjunction: true,
         sort: '_term'
-      })
-      .then(v => {
-        assert.equal(6, v.data.buckets[0].doc_count);
-        assert.equal('Action', v.data.buckets[0].key);
-        done();
-      })
+      });
+
+      assert.equal(6, v.data.buckets[0].doc_count);
+      assert.equal('Action', v.data.buckets[0].key);
     });
 
-    it('should throw an error for not existing facet', function(done) {
+    it('should throw an error for not existing facet', async function() {
 
-      elasticitems.aggregation()
-      .catch(v => {
-        done();
-      })
+      await assert.rejects(
+        async () => {
+          await elasticitems.aggregation();
+        },
+        {
+          name: 'Error',
+          //message: 'Wrong value'
+        }
+      );
     });
 
-    xit('should throw an error for not existing facet', function(done) {
+    it('should throw an error for not existing facet', async function() {
 
-      elasticitems.aggregation({
-        name: 'blabla'
-      })
-      .catch(v => {
-        done();
-      })
-      .error(v => {
-        done();
-      })
+      await assert.rejects(
+        async () => {
+          await elasticitems.aggregation({
+            name: 'blabla'
+          });
+        },
+        {
+          name: 'TypeError',
+          //message: 'Wrong value'
+        }
+      );
     });
-  })
-
-  describe('should make similarity on movies', function() {
-
-    it('makes a simple similarity', function(done) {
-
-      elasticitems.search({
-        query: 'the godfather 1972'
-      })
-      .then(result => {
-        assert.deepEqual('The Godfather', result.data.items[0].name);
-        return elasticitems.similar(result.data.items[0].id, {
-          fields: ['actors']
-        })
-      })
-      .then(result => {
-        //assert.deepEqual('The Godfather: Part II', result.data.items[0].name);
-        done();
-      })
-    });
-  })
-})
+  });
+});

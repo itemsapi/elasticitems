@@ -1,26 +1,12 @@
 {
-  "schema": {
-    "tags": {
-      "type": "string",
-      "index": "not_analyzed",
-      "store": true
-    },
-    "genres": {
-      "type": "string",
-      "index": "not_analyzed",
-      "store": true
-    },
-    "rating": {
-      "type": "float",
-      "store": true
-    },
-    "actors": {
-      "type": "string",
-      "index": "not_analyzed",
-      "store": true
-    }
-  },
   "aggregations": {
+    "country": {
+      "type": "terms",
+      "field": "country",
+      "conjunction": false,
+      "size": 1000,
+      "title": "Country"
+    },
     "tags": {
       "type": "terms",
       "field": "tags",
@@ -30,23 +16,17 @@
     },
     "genres": {
       "type": "terms",
-      "field": "genres",
+      "field": "genres.raw",
       "conjunction": true,
       "size": 1000,
       "title": "Genres"
     },
     "tags_or": {
       "type": "terms",
-      "field": "tags",
+      "field": "tags_or",
       "conjunction": false,
       "size": 1000,
       "title": "Tags OR"
-    },
-    "empty_tags": {
-      "position": 80,
-      "field": "tags",
-      "size": 15,
-      "type": "is_empty"
     },
     "actors": {
       "type": "terms",
@@ -55,29 +35,47 @@
       "size": 1000,
       "title": "Actors"
     },
+    "actors_or": {
+      "type": "terms",
+      "field": "actors_or",
+      "conjunction": false,
+      "size": 1000,
+      "title": "Actors"
+    },
     "rating": {
       "ranges": [
         {
-          "name": "8 - 9",
-          "gte": 8,
-          "lte": 9
+          "key": "9 - 10",
+          "from": 9,
+          "to": 10
         },
         {
-          "name": "< 10",
-          "gte": 9,
-          "lte": 10
+          "key": "8 - 9",
+          "from": 8,
+          "to": 9
         }
       ],
       "conjunction": true,
       "field": "rating",
       "type": "range"
     },
-    "actors_or": {
-      "type": "terms",
-      "field": "actors",
+    "rating_or": {
+      "ranges": [
+        {
+          "key": "9 - 10",
+          "from": 9,
+          "to": 10
+        },
+        {
+          "key": "8 - 9",
+          "from": 8,
+          "to": 9
+        }
+      ],
+      "title": "Rating OR",
       "conjunction": false,
-      "size": 1000,
-      "title": "Actors"
+      "field": "rating",
+      "type": "range"
     }
   },
   "sortings": {

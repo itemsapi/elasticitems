@@ -1,0 +1,49 @@
+{
+  "settings": {
+    "index": {
+      "number_of_shards": 1,
+      "number_of_replicas": 1
+    }
+  },
+  "mappings": {
+    "properties": {
+      "tags": {
+        "type": "keyword",
+        "store": true
+      },
+      "tags_or": {
+        "type": "keyword",
+        "store": true
+      },
+      "country": {
+        "type": "keyword",
+        "store": true
+      },
+      "genres": {
+        "type": "text",
+        "fields": {
+          "raw": { 
+            "type": "keyword"
+          }
+        },
+        "store": true
+      },
+      "name": {
+        "type": "text",
+        "fielddata": true
+      },
+      "rating": {
+        "type": "float",
+        "store": true
+      },
+      "actors": {
+        "type": "keyword",
+        "store": true
+      },
+      "actors_or": {
+        "type": "keyword",
+        "store": true
+      }
+    }
+  }
+}
