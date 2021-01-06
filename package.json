@@ -1,6 +1,6 @@
 {
   "name": "elasticitems",
-  "version": "2.0.4",
+  "version": "2.0.6",
   "description": "Faceted search client on top of Elasticsearch 7.x",
   "main": "index.js",
   "scripts": {

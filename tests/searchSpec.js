@@ -346,7 +346,7 @@ describe('should search movies', function() {
       const v = await elasticitems.search({
         per_page: 1,
         filters: {
-          genres_or: ['Drama']
+          genres: ['Drama']
         }
       });
 
