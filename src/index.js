@@ -135,6 +135,11 @@ module.exports = function elasticitems(elastic_config, search_config) {
       let facet_config = {};
 
       if (input.name) {
+
+        if (!search_config.aggregations[input.name]) {
+          throw new Error('filter does not exist');
+        }
+
         facet_config = _.clone(search_config.aggregations[input.name]);
       }
 
@@ -170,13 +175,6 @@ module.exports = function elasticitems(elastic_config, search_config) {
           local_search_config.aggregations[k] = search_config.aggregations[k];
         }
       });
-
-      //console.log(input);
-      //input.field = 'tags';
-      //console.log(local_search_config);
-      //console.log(key);
-
-      //local_search_config.aggregations.tags.conjunction = true;
 
       let result = await search(input, local_search_config);
       result = searchHelper.facetsConverter(input, local_search_config, result);

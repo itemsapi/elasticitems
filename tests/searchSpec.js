@@ -392,16 +392,20 @@ describe('should search movies', function() {
 
     it('makes a simple facet filtering on no existing filter', async function() {
 
-      try {
-        await elasticitems.search({
-          per_page: 1,
-          filters: {
-            abba: ['abba']
-          }
-        });
-      } catch (e) {
-        assert.equal('filter does not exist', e.message);
-      }
+      await assert.rejects(
+        async () => {
+          await elasticitems.search({
+            per_page: 1,
+            filters: {
+              abba: ['abba']
+            }
+          });
+        },
+        {
+          name: 'Error',
+          message: 'filter does not exist'
+        }
+      );
     });
 
     it('makes a simple facet filtering with ranges', async function() {
@@ -567,6 +571,29 @@ describe('should search movies', function() {
       assert.equal(9, v.pagination.total);
     });
 
+    it('should handle not existing filter', async function() {
+
+      await assert.rejects(
+        async () => {
+          await elasticitems.aggregation({
+            name: 'abba',
+            filters: {
+              tags: ['mafia'],
+            },
+            not_filters: {
+              genres: ['Biography']
+            },
+            size: 30,
+            per_page: 5
+          });
+        },
+        {
+          //name: 'Error',
+          message: 'filter does not exist'
+        }
+      );
+    });
+
     it('should make single facet query on movies with search query', async function() {
 
       const v = await elasticitems.aggregation({
@@ -677,21 +704,6 @@ describe('should search movies', function() {
         },
         {
           name: 'Error',
-          //message: 'Wrong value'
-        }
-      );
-    });
-
-    it('should throw an error for not existing facet', async function() {
-
-      await assert.rejects(
-        async () => {
-          await elasticitems.aggregation({
-            name: 'blabla'
-          });
-        },
-        {
-          name: 'TypeError',
           //message: 'Wrong value'
         }
       );
