@@ -390,6 +390,20 @@ describe('should search movies', function() {
       assert.equal(2, v.pagination.total);
     });
 
+    it('makes a simple facet filtering on no existing filter', async function() {
+
+      try {
+        await elasticitems.search({
+          per_page: 1,
+          filters: {
+            abba: ['abba']
+          }
+        });
+      } catch (e) {
+        assert.equal('filter does not exist', e.message);
+      }
+    });
+
     it('makes a simple facet filtering with ranges', async function() {
 
       let v = await elasticitems.search({

@@ -77,12 +77,30 @@ describe('should make crud operations', function() {
 
   it('should make partial update item', async function() {
 
-    const v = await elasticitems.partialUpdate('shawshank', {
-      year: 1994
+    let v = await elasticitems.partialUpdate('shawshank', {
+      year: 1995
     });
 
     assert.equal('updated', v.result);
     assert.equal(2, v._version);
+
+    v = await elasticitems.partialUpdate('shawshank', {
+      year: 1994
+    });
+
+    assert.equal('updated', v.result);
+    assert.equal(3, v._version);
+  });
+
+  it('should make partial update item with fields out of schema', async function() {
+
+    const v = await elasticitems.partialUpdate('shawshank', {
+      a1: 'xyz',
+      a2: 1,
+      a3: new Date()
+    });
+
+    assert.equal('updated', v.result);
   });
 
   it('should get item', async function() {

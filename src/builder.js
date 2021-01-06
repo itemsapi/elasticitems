@@ -26,7 +26,6 @@ exports.searchBuilder = function(query, config) {
 
 
   for (const [, value] of Object.entries(aggs)) {
-
     if (!value.field) {
       throw new Error('field is missing');
     }
@@ -72,21 +71,16 @@ exports.searchBuilder = function(query, config) {
     qb.notQuery('ids', { values: query.exclude_ids });
   }
 
-  //console.log('filters');
-  //console.log(filters);
-
   // global filtering by filters
   // it filters all aggregations except global one
   for (const [key, values] of Object.entries(filters)) {
 
     // dis OR con AND
     for (const value of values) {
-      //qb.filter('term', key, value)
 
-      //console.log('key');
-      //console.log(aggs[key]);
-
-      //console.log(key);
+      if (!aggs[key]) {
+        throw new Error('filter does not exist');
+      }
 
       if (aggs[key].type === 'range') {
 
@@ -179,128 +173,128 @@ exports.searchBuilder = function(query, config) {
 
         if (facets_names_obj === null || facets_names_obj[key]) {
 
-        a.aggregation('filter', key, key, () => {
+          a.aggregation('filter', key, key, () => {
 
-          // empty bool is slow
-          const filter = bodybuilder().andFilter('bool', b => {
-            for (const [key2, values2] of Object.entries(filters)) {
-              for (const value2 of values2) {
-                if (key !== key2) {
+            // empty bool is slow
+            const filter = bodybuilder().andFilter('bool', b => {
+              for (const [key2, values2] of Object.entries(filters)) {
+                for (const value2 of values2) {
+                  if (key !== key2) {
 
 
-                  if (aggs[key2].type === 'range') {
+                    if (aggs[key2].type === 'range') {
 
-                    const range = aggs[key2].ranges.find(element => element.key === value2);
+                      const range = aggs[key2].ranges.find(element => element.key === value2);
 
-                    if (range) {
-                      if (aggs[key2].conjunction !== false) {
-                        b.andFilter('range', aggs[key2].field, {
-                          gte: range.from,
-                          lt: range.to
-                        });
-                      } else {
-                        b.orFilter('range', aggs[key2].field, {
-                          gte: range.from,
-                          lt: range.to
-                        });
+                      if (range) {
+                        if (aggs[key2].conjunction !== false) {
+                          b.andFilter('range', aggs[key2].field, {
+                            gte: range.from,
+                            lt: range.to
+                          });
+                        } else {
+                          b.orFilter('range', aggs[key2].field, {
+                            gte: range.from,
+                            lt: range.to
+                          });
+                        }
                       }
-                    }
 
-                  } else {
-                    if (aggs[key2].conjunction !== false) {
-                      b.andFilter('term', aggs[key2].field, value2);
                     } else {
-                      b.orFilter('term', aggs[key2].field, value2);
+                      if (aggs[key2].conjunction !== false) {
+                        b.andFilter('term', aggs[key2].field, value2);
+                      } else {
+                        b.orFilter('term', aggs[key2].field, value2);
+                      }
                     }
                   }
                 }
               }
-            }
 
 
-            return b;
-          });
+              return b;
+            });
 
-          const options = {
-            size: value.size
-          };
-
-          const order = value.order ? value.order : 'desc';
-
-          if (value.sort) {
-            const sort = value.sort === '_term' ? '_key' : value.sort;
-
-            options.order = {
-              [sort]: order
+            const options = {
+              size: value.size
             };
-          }
 
-          if (facets_names_obj === null || facets_names_obj[key]) {
+            const order = value.order ? value.order : 'desc';
 
-            if (value.type === 'range') {
-              filter.aggregation('range', value.field, key, {
-                ranges: value.ranges
-              });
-            } else {
-              filter.aggregation('terms', value.field, key, options);
+            if (value.sort) {
+              const sort = value.sort === '_term' ? '_key' : value.sort;
+
+              options.order = {
+                [sort]: order
+              };
             }
-          }
 
-          /***
-           * global filters copy
-           */
-          for (const [key, values] of Object.entries(not_filters)) {
-            for (const value of values) {
+            if (facets_names_obj === null || facets_names_obj[key]) {
 
-              if (aggs[key].type === 'range') {
-                const range = aggs[key].ranges.find(element => element.key === value);
-                if (range) {
-                  filter.notFilter('range', aggs[key].field, {
-                    gte: range.from,
-                    lt: range.to
-                  });
-                }
+              if (value.type === 'range') {
+                filter.aggregation('range', value.field, key, {
+                  ranges: value.ranges
+                });
               } else {
-                filter.notFilter('term', aggs[key].field, value);
+                filter.aggregation('terms', value.field, key, options);
               }
             }
-          }
 
-          /*
+            /***
+           * global filters copy
+           */
+            for (const [key, values] of Object.entries(not_filters)) {
+              for (const value of values) {
+
+                if (aggs[key].type === 'range') {
+                  const range = aggs[key].ranges.find(element => element.key === value);
+                  if (range) {
+                    filter.notFilter('range', aggs[key].field, {
+                      gte: range.from,
+                      lt: range.to
+                    });
+                  }
+                } else {
+                  filter.notFilter('term', aggs[key].field, value);
+                }
+              }
+            }
+
+            /*
            * put it to helper function
            */
-          if (query.query) {
-            filter.filter('multi_match', {
-              query: query.query,
-              // @TODO rename field to query_fields
-              fields: query.fields,
-              // @TODO rename to query_operator
-              operator: query.operator
-            });
-          }
+            if (query.query) {
+              filter.filter('multi_match', {
+                query: query.query,
+                // @TODO rename field to query_fields
+                fields: query.fields,
+                // @TODO rename to query_operator
+                operator: query.operator
+              });
+            }
 
-          if (query.ids) {
-            filter.filter('ids', { values: query.ids });
-          }
+            if (query.ids) {
+              filter.filter('ids', { values: query.ids });
+            }
 
-          if (query.query_string) {
-            filter.filter('query_string', { query: query.query_string });
-          }
+            if (query.query_string) {
+              filter.filter('query_string', { query: query.query_string });
+            }
 
-          if (query.ids && Array.isArray(query.ids)) {
-            filter.filter('ids', { values: query.ids });
-          }
+            if (query.ids && Array.isArray(query.ids)) {
+              filter.filter('ids', { values: query.ids });
+            }
 
-          if (query.exclude_ids && Array.isArray(query.exclude_ids)) {
-            filter.notFilter('ids', { values: query.exclude_ids });
-          }
+            if (query.exclude_ids && Array.isArray(query.exclude_ids)) {
+              filter.notFilter('ids', { values: query.exclude_ids });
+            }
 
-          /***
+            /***
            * global filters copy end
            */
-          return filter;
-        });
-      }
+            return filter;
+          });
+        }
 
       }
     }
