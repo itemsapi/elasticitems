@@ -208,9 +208,9 @@ exports.searchBuilder = function(query, config) {
 
                   } else {
                     if (aggs[key2].conjunction !== false) {
-                      b.andFilter('term', key2, value2);
+                      b.andFilter('term', aggs[key2].field, value2);
                     } else {
-                      b.orFilter('term', key2, value2);
+                      b.orFilter('term', aggs[key2].field, value2);
                     }
                   }
                 }

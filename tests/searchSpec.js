@@ -341,6 +341,21 @@ describe('should search movies', function() {
       assert.equal(2, v.data.aggregations.country.buckets[1].doc_count);
     });
 
+    it('makes a simple facet filtering on raw field', async function() {
+
+      const v = await elasticitems.search({
+        per_page: 1,
+        filters: {
+          genres_or: ['Drama']
+        }
+      });
+
+      assert.equal(15, v.pagination.total);
+      assert.equal(67, v.data.aggregations.tags.buckets.length);
+      assert.equal(2, v.data.aggregations.rating_or.buckets.length);
+    });
+
+
 
     it('makes a simple facet filtering on two names', async function() {
 
@@ -618,6 +633,19 @@ describe('should search movies', function() {
 
       const v = await elasticitems.aggregation({
         field: 'genres.raw',
+        order: 'asc',
+        conjunction: true,
+        sort: '_term'
+      });
+
+      assert.equal(6, v.data.buckets[0].doc_count);
+      assert.equal('Action', v.data.buckets[0].key);
+    });
+
+    it('should make single facet query on movies with field param', async function() {
+
+      const v = await elasticitems.aggregation({
+        name: 'genres',
         order: 'asc',
         conjunction: true,
         sort: '_term'
