@@ -75,40 +75,68 @@ exports.searchBuilder = function(query, config) {
   // it filters all aggregations except global one
   for (const [key, values] of Object.entries(filters)) {
 
-    // dis OR con AND
-    for (const value of values) {
+    if (!aggs[key]) {
+      throw new Error('filter does not exist');
+    }
 
-      if (!aggs[key]) {
-        throw new Error('filter does not exist');
-      }
+    // disjunction terms
+    if (aggs[key] && aggs[key].conjunction === false && aggs[key].type !== 'range') {
+      qb.andFilter('bool', b => {
 
-      if (aggs[key].type === 'range') {
+        for (const value of values) {
+          b.orFilter('term', aggs[key].field, value);
+        }
+        return b;
+      });
+    }
 
-        const range = aggs[key].ranges.find(element => element.key === value);
+    // disjunction range
+    if (aggs[key] && aggs[key].conjunction === false && aggs[key].type === 'range') {
+      qb.andFilter('bool', b => {
 
-        // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-bucket-range-aggregation.html
-        if (range) {
-
-          if (aggs[key].conjunction !== false) {
-            qb.andFilter('range', aggs[key].field, {
-              gte: range.from,
-              lt: range.to
-            });
-          } else {
-
-            qb.orFilter('range', aggs[key].field, {
+        for (const value of values) {
+          const range = aggs[key].ranges.find(element => element.key === value);
+          // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-bucket-range-aggregation.html
+          if (range) {
+            b.orFilter('range', aggs[key].field, {
               gte: range.from,
               lt: range.to
             });
           }
         }
 
-      } else {
+        return b;
+      });
+    }
 
-        if (aggs[key].conjunction !== false || values.length === 1) {
-          qb.andFilter('term', aggs[key].field, value);
+    if (aggs[key] && aggs[key].conjunction !== false) {
+
+      for (const value of values) {
+
+        if (!aggs[key]) {
+          throw new Error('filter does not exist');
+        }
+
+        if (aggs[key].type === 'range') {
+
+          const range = aggs[key].ranges.find(element => element.key === value);
+
+          // https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-bucket-range-aggregation.html
+          if (range) {
+
+            if (aggs[key].conjunction !== false) {
+              qb.andFilter('range', aggs[key].field, {
+                gte: range.from,
+                lt: range.to
+              });
+            }
+          }
+
         } else {
-          qb.orFilter('term', aggs[key].field, value);
+
+          if (aggs[key].conjunction !== false) {
+            qb.andFilter('term', aggs[key].field, value);
+          }
         }
       }
     }
@@ -177,6 +205,14 @@ exports.searchBuilder = function(query, config) {
 
             // empty bool is slow
             const filter = bodybuilder().andFilter('bool', b => {
+
+              // disjunctive filters here
+
+
+
+
+
+
               for (const [key2, values2] of Object.entries(filters)) {
                 for (const value2 of values2) {
                   if (key !== key2) {
@@ -210,6 +246,7 @@ exports.searchBuilder = function(query, config) {
                   }
                 }
               }
+
 
 
               return b;
