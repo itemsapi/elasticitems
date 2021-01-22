@@ -208,39 +208,62 @@ exports.searchBuilder = function(query, config) {
 
               // disjunctive filters here
 
-
-
-
-
-
               for (const [key2, values2] of Object.entries(filters)) {
-                for (const value2 of values2) {
-                  if (key !== key2) {
 
+                // disjunction filters for terms
+                if (aggs[key2] && aggs[key2].conjunction === false && aggs[key2].type !== 'range') {
+                  b.andFilter('bool', c => {
+                    if (key !== key2) {
+                      for (const value2 of values2) {
+                        c.orFilter('term', aggs[key2].field, value2);
+                      }
+                    }
 
-                    if (aggs[key2].type === 'range') {
+                    return c;
+                  });
+                }
 
-                      const range = aggs[key2].ranges.find(element => element.key === value2);
-
-                      if (range) {
-                        if (aggs[key2].conjunction !== false) {
-                          b.andFilter('range', aggs[key2].field, {
-                            gte: range.from,
-                            lt: range.to
-                          });
-                        } else {
-                          b.orFilter('range', aggs[key2].field, {
+                // disjunction filters for range
+                if (aggs[key2] && aggs[key2].conjunction === false && aggs[key2].type === 'range') {
+                  b.andFilter('bool', c => {
+                    if (key !== key2) {
+                      for (const value2 of values2) {
+                        const range = aggs[key2].ranges.find(element => element.key === value2);
+                        if (range) {
+                          c.orFilter('range', aggs[key2].field, {
                             gte: range.from,
                             lt: range.to
                           });
                         }
                       }
+                    }
 
-                    } else {
-                      if (aggs[key2].conjunction !== false) {
-                        b.andFilter('term', aggs[key2].field, value2);
+                    return c;
+                  });
+                }
+
+                // conjunction filters
+                if (aggs[key2] && aggs[key2].conjunction !== false) {
+                  for (const value2 of values2) {
+                    if (key !== key2) {
+
+                      if (aggs[key2].type === 'range') {
+
+                        const range = aggs[key2].ranges.find(element => element.key === value2);
+
+                        if (range) {
+                          if (aggs[key2].conjunction !== false) {
+                            b.andFilter('range', aggs[key2].field, {
+                              gte: range.from,
+                              lt: range.to
+                            });
+                          }
+                        }
+
                       } else {
-                        b.orFilter('term', aggs[key2].field, value2);
+                        if (aggs[key2].conjunction !== false) {
+                          b.andFilter('term', aggs[key2].field, value2);
+                        }
                       }
                     }
                   }
