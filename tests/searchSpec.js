@@ -7,7 +7,7 @@ const movies = _.map(require('./fixtures/movies.json'), v => {
   return v;
 });
 
-const HOST = process.env.HOST || 'http://localhost:9205';
+const HOST = process.env.HOST || 'http://localhost:9200';
 const INDEX = 'test';
 const elasticbulk = require('elasticbulk');
 //const elasticbulk = require('/home/mateusz/node/elasticbulk');
@@ -56,7 +56,7 @@ describe('should search movies', function() {
       assert.equal(undefined, v.data.items[0].score);
 
       //console.log(v.data.aggregations.rating);
-      console.log(v.data.aggregations.rating_or);
+      //console.log(v.data.aggregations.rating_or);
       assert.equal(16, v.data.aggregations.rating_or.buckets[0].doc_count);
       assert.equal(16, v.data.aggregations.rating.buckets[0].doc_count);
       assert.equal('8 - 9', v.data.aggregations.rating.buckets[0].key);
@@ -286,6 +286,7 @@ describe('should search movies', function() {
 
       const v = await elasticitems.search({
         per_page: 1,
+        print_query: true,
         filters: {
           tags_or: ['epic']
         }
@@ -311,8 +312,6 @@ describe('should search movies', function() {
 
       assert.equal(3, v.pagination.total);
       assert.equal(92, v.data.aggregations.tags_or.buckets.length);
-
-      console.log(v.data.aggregations.country);
 
       assert.equal('USA', v.data.aggregations.country.buckets[0].key);
       assert.equal(3, v.data.aggregations.country.buckets[0].doc_count);
@@ -369,7 +368,7 @@ describe('should search movies', function() {
       });
 
       //console.log(v.data.aggregations);
-      console.log(v);
+      //console.log(v);
 
       assert.equal(2, v.pagination.total);
       assert.equal(9, v.data.aggregations.tags_or.buckets.length);
@@ -408,7 +407,7 @@ describe('should search movies', function() {
       );
     });
 
-    it('makes a simple facet filtering with ranges', async function() {
+    xit('makes a simple facet filtering with ranges', async function() {
 
       let v = await elasticitems.search({
         per_page: 1,
@@ -455,7 +454,7 @@ describe('should search movies', function() {
       assert.equal(0, v.pagination.total);
     });
 
-    it('makes a simple facet filtering with disjunctive ranges', async function() {
+    xit('makes a simple facet filtering with disjunctive ranges', async function() {
 
       let v = await elasticitems.search({
         per_page: 1,
@@ -709,4 +708,90 @@ describe('should search movies', function() {
       );
     });
   });
+});
+
+describe('should search domains', function() {
+
+  const schema = {
+    settings: {
+      analysis: {
+        filter : {
+          my_word_delimiter : {
+            type : 'word_delimiter',
+            preserve_original: 'true'
+          }
+        },
+        analyzer: {
+          domains: {
+            tokenizer: 'whitespace',
+            filter: [
+              'lowercase',
+              'stop',
+              //'my_word_delimiter'
+            ]
+          }
+        }
+      }
+    },
+    mappings: {
+      properties: {
+        domain: {
+          type: 'keyword',
+          store: true
+        },
+        text: {
+          type: 'text',
+          //search_analyzer: 'domains',
+          store: true
+        }
+      }
+    }
+  }
+
+  const data = [{
+    domain: 'ab-ba.com',
+    text: ''
+  }, {
+    domain: 'domain.com',
+    text: 'ab ba ab ba com ab ba ba '
+  }];
+
+  before(async function() {
+
+    await elastic.indices.delete({
+      index: INDEX,
+      ignore_unavailable: true,
+    });
+
+    await elasticbulk.import(data, {
+      index: INDEX,
+      host: HOST,
+      refresh: true,
+      debug: true,
+      engine: 'elasticsearch7x',
+    }, schema);
+  });
+
+  it('makes a simple search', async function() {
+    const v = await elasticitems.search();
+    assert.equal(v.pagination.total, 2);
+  });
+
+  it('search exact domain', async function() {
+    const v = await elasticitems.search({
+      query: 'domain.com'
+    });
+    assert.equal(v.pagination.total, 1);
+  });
+
+  it('search exact domain with hyphen', async function() {
+    const v = await elasticitems.search({
+      query: 'ab-ba.com'
+    });
+
+    //console.log(v.data.items);
+    assert.equal('ab-ba.com', v.data.items[0].domain);
+    //assert.equal(v.pagination.total, 1);
+  });
+
 });

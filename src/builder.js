@@ -341,10 +341,6 @@ exports.searchBuilder = function(query, config) {
               filter.filter('query_string', { query: query.query_string });
             }
 
-            if (query.ids && Array.isArray(query.ids)) {
-              filter.filter('ids', { values: query.ids });
-            }
-
             if (query.exclude_ids && Array.isArray(query.exclude_ids)) {
               filter.notFilter('ids', { values: query.exclude_ids });
             }

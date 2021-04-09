@@ -3,7 +3,7 @@ const ElasticItems = require('./../src/index');
 const movies_config = require('./fixtures/movies_config.json');
 const movies_schema = require('./fixtures/movies_schema.json');
 const movies = require('./fixtures/movies.json');
-const HOST = process.env.HOST || 'http://localhost:9205';
+const HOST = process.env.HOST || 'http://localhost:9200';
 const INDEX = 'test';
 const elasticbulk = require('elasticbulk');
 
