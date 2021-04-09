@@ -12,6 +12,16 @@ module.exports = function elasticitems(elastic_config, search_config) {
     node: elastic_config.host
   });
 
+
+  const build = async function(input, local_search_config) {
+    input = input || {};
+    input.per_page = input.per_page || 16;
+
+
+    return builder.searchBuilder(input, local_search_config ||  search_config).build();
+  }
+
+
   /**
    * per_page
    * page
@@ -110,6 +120,8 @@ module.exports = function elasticitems(elastic_config, search_config) {
   return {
 
     search: search,
+
+    build: build,
 
     /**
      * returns list of elements for specific aggregation i.e. list of tags

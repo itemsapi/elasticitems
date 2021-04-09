@@ -23,9 +23,9 @@ const getAggregationsResponse = function(collection_aggs, result_aggs) {
   //console.log(result_aggs);
   //console.log(result_aggs.global);
 
-  if (result_aggs.global) {
+  if (result_aggs.global && result_aggs.global.global_filterable) {
 
-    for (const [key, value] of Object.entries(result_aggs.global)) {
+    for (const [key, value] of Object.entries(result_aggs.global.global_filterable)) {
       if (value && value[key] && value[key].buckets) {
         result_aggs[key] = value[key];
       }
