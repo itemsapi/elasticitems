@@ -1,6 +1,6 @@
 {
   "name": "elasticitems",
-  "version": "2.0.14",
+  "version": "2.0.15",
   "description": "Faceted search client on top of Elasticsearch 7.x",
   "main": "index.js",
   "scripts": {
@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/itemsapi/elasticitems#readme",
   "dependencies": {
-    "@elastic/elasticsearch": "^7.10.0",
+    "@elastic/elasticsearch": "^7.13.0",
     "bluebird": "^3.7.2",
     "bodybuilder": "^2.2.25",
     "lodash": "^4.17.20"
