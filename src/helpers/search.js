@@ -41,10 +41,10 @@ const getAggregationsResponse = function(collection_aggs, result_aggs) {
 
 
   // object response
-  return _.extend(_.clone(result_aggs), _.mapValues(result_aggs, function(v, k) {
+  return Object.assign({}, result_aggs, _.mapValues(result_aggs, function(v, k) {
     // supports filters in aggs
     if (!v.buckets && v[k]) {
-      _.extend(v, v[k]);
+      Object.assign(v, v[k]);
       delete v[k];
     }
 
@@ -58,7 +58,7 @@ const getAggregationsResponse = function(collection_aggs, result_aggs) {
     //console.log(collection_aggs);
     //console.log(k);
 
-    return _.extend(v, {
+    return Object.assign(v, {
       title: collection_aggs[k].title || k,
       name: k,
       position: parseInt(collection_aggs[k].position || 0, 10),
@@ -100,9 +100,10 @@ const searchConverter = function(input, collection, data) {
   const helper = collectionHelper(collection);
 
   const items = _.map(data.hits.hits, function(doc) {
-    return _.extend(
+    return Object.assign(
       {id: doc.id},
-      doc._source, doc.fields
+      doc._source, 
+      doc.fields
     );
   });
 

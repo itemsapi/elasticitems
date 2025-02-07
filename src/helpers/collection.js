@@ -155,19 +155,17 @@ module.exports = function(data) {
 
   const getMetadata = function() {
     const collection = data;
-    return _.extend(_.clone(collection),
-      {
-        table: {
-          fields: _.object(_.map(collection.table.fields, function(val, i) {
-            let display = 'string';
-            if (collection.schema[val] && collection.schema[val].display) {
-              display = collection.schema[val].display;
-            }
-            return [val, {name: val, display: display, sort: i}];
-          }))
-        }
+    return Object.assign({}, _.clone(collection), {
+      table: {
+        fields: _.fromPairs(_.map(collection.table.fields, function(val, i) {
+          let display = 'string';
+          if (collection.schema[val] && collection.schema[val].display) {
+            display = collection.schema[val].display;
+          }
+          return [val, {name: val, display: display, sort: i}];
+        }))
       }
-    );
+    });
   };
 
   return {
