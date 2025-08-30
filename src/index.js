@@ -7,7 +7,7 @@ module.exports = function elasticitems(elastic_config, search_config) {
 
   search_config = search_config || {};
 
-  const { Client } = require('@elastic/elasticsearch');
+  const { Client } = require('@opensearch-project/opensearch');
   const client = new Client({
     node: elastic_config.host
   });

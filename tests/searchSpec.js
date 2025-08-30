@@ -9,8 +9,6 @@ const movies = _.map(require('./fixtures/movies.json'), v => {
 
 const HOST = process.env.HOST || 'http://localhost:9200';
 const INDEX = 'test';
-const elasticbulk = require('elasticbulk');
-//const elasticbulk = require('/home/mateusz/node/elasticbulk');
 
 const elasticitems = ElasticItems({
   host: HOST,
@@ -18,32 +16,41 @@ const elasticitems = ElasticItems({
   type: INDEX,
 }, movies_config);
 
-const { Client } = require('@elastic/elasticsearch');
+const { Client } = require('@opensearch-project/opensearch');
 const elastic = new Client({
   node: HOST
 });
 
-describe('should search movies', function() {
+describe('should search movies', function () {
 
-  before(async function() {
+  before(async function () {
 
     await elastic.indices.delete({
       index: INDEX,
       ignore_unavailable: true,
     });
 
-    await elasticbulk.import(movies, {
+    // Create index with schema
+    await elastic.indices.create({
       index: INDEX,
-      host: HOST,
+      body: movies_schema
+    });
+
+    // Bulk import using native helpers
+    const bulkBody = movies.flatMap(doc => [
+      { index: { _index: INDEX, _id: doc.id } },
+      doc
+    ]);
+
+    await elastic.bulk({
       refresh: true,
-      debug: true,
-      engine: 'elasticsearch7x',
-    }, movies_schema);
+      body: bulkBody
+    });
   });
 
-  describe('should search movies', function() {
+  describe('should search movies', function () {
 
-    it('makes a simple search', async function() {
+    it('makes a simple search', async function () {
 
       const v = await elasticitems.search();
 
@@ -68,7 +75,7 @@ describe('should search movies', function() {
       assert.equal(262, v.data.aggregations.actors_or.buckets.length);
     });
 
-    it('should makes a full text search', async function() {
+    it('should makes a full text search', async function () {
 
       const v = await elasticitems.search({
         query: 'redemption shawshank aaa'
@@ -78,7 +85,7 @@ describe('should search movies', function() {
       assert.equal('The Shawshank Redemption', v.data.items[0].name);
     });
 
-    it('should makes a full text search within keyword type', async function() {
+    it('should makes a full text search within keyword type', async function () {
 
       const v = await elasticitems.search({
         query: 'biography'
@@ -87,7 +94,7 @@ describe('should search movies', function() {
       assert.equal(3, v.pagination.total);
     });
 
-    it('should makes a full text search', async function() {
+    it('should makes a full text search', async function () {
 
       const v = await elasticitems.search({
         query_string: 'rating:<=9.3 AND rating:>=9.3',
@@ -100,7 +107,7 @@ describe('should search movies', function() {
       assert.equal(5, v.data.aggregations.tags_or.buckets.length);
     });
 
-    xit('should makes a full text search with fuziness', async function() {
+    xit('should makes a full text search with fuziness', async function () {
 
       const v = await elasticitems.search({
         query_string: 'rating:<=9.3 AND rating:>=9.3',
@@ -113,7 +120,7 @@ describe('should search movies', function() {
       assert.equal(1, v.pagination.total);
     });
 
-    it('should makes a full text search over specific fields', async function() {
+    it('should makes a full text search over specific fields', async function () {
 
       let v = await elasticitems.search({
         query_string: 'rating:<=9.3 AND rating:>=9.3',
@@ -141,7 +148,7 @@ describe('should search movies', function() {
       assert.equal(0, v.data.aggregations.country.buckets.length);
     });
 
-    it('should makes a full text search and search by ids', async function() {
+    it('should makes a full text search and search by ids', async function () {
 
       const v = await elasticitems.search({
         ids: ['1']
@@ -156,7 +163,7 @@ describe('should search movies', function() {
       assert.equal('9 - 10', v.data.aggregations.rating.buckets[1].key);
     });
 
-    it('should makes a full text search and search by ids', async function() {
+    it('should makes a full text search and search by ids', async function () {
 
       let v = await elasticitems.search({
         query_string: 'rating:<=9.3 AND rating:>=9.3',
@@ -202,7 +209,7 @@ describe('should search movies', function() {
       assert.equal(1, v.data.aggregations.country.buckets[0].doc_count);
     });
 
-    it('should makes a full text search with and | or operator', async function() {
+    it('should makes a full text search with and | or operator', async function () {
 
       let v = await elasticitems.search({
         query_string: 'rating:<=9.3 AND rating:>=9.3',
@@ -221,7 +228,7 @@ describe('should search movies', function() {
       assert.equal(0, v.data.aggregations.country.buckets.length);
     });
 
-    it('should search with query_string', async function() {
+    it('should search with query_string', async function () {
 
       const v = await elasticitems.search({
         query_string: 'rating:<=9.3 AND rating:>=9.3'
@@ -235,7 +242,7 @@ describe('should search movies', function() {
     });
 
 
-    it('makes a simple sort', async function() {
+    it('makes a simple sort', async function () {
 
       const v = await elasticitems.search({
         per_page: 1,
@@ -247,7 +254,7 @@ describe('should search movies', function() {
 
 
 
-    it('makes a simple facet filtering', async function() {
+    it('makes a simple facet filtering', async function () {
 
       const v = await elasticitems.search({
         per_page: 1,
@@ -265,7 +272,7 @@ describe('should search movies', function() {
 
     });
 
-    it('makes a simple facet filtering only for a given facets name', async function() {
+    it('makes a simple facet filtering only for a given facets name', async function () {
 
       let v = await elasticitems.search({
         per_page: 1,
@@ -282,7 +289,7 @@ describe('should search movies', function() {
       assert.deepEqual(['tags', 'rating_or'], Object.keys(v.data.aggregations));
     });
 
-    it('makes a simple facet filtering with or (disjunctive)', async function() {
+    it('makes a simple facet filtering with or (disjunctive)', async function () {
 
       const v = await elasticitems.search({
         per_page: 1,
@@ -301,7 +308,7 @@ describe('should search movies', function() {
       assert.equal(2, v.data.aggregations.country.buckets[1].doc_count);
     });
 
-    it('makes a simple facet filtering with or (disjunctive)', async function() {
+    it('makes a simple facet filtering with or (disjunctive)', async function () {
 
       const v = await elasticitems.search({
         per_page: 1,
@@ -319,7 +326,7 @@ describe('should search movies', function() {
       assert.equal(2, v.data.aggregations.country.buckets[1].doc_count);
     });
 
-    it('makes a simple facet filtering using NOT ', async function() {
+    it('makes a simple facet filtering using NOT ', async function () {
 
       const v = await elasticitems.search({
         per_page: 1,
@@ -340,7 +347,7 @@ describe('should search movies', function() {
       assert.equal(2, v.data.aggregations.country.buckets[1].doc_count);
     });
 
-    it('makes a simple facet filtering on raw field', async function() {
+    it('makes a simple facet filtering on raw field', async function () {
 
       const v = await elasticitems.search({
         per_page: 1,
@@ -356,7 +363,7 @@ describe('should search movies', function() {
 
 
 
-    it('makes a simple facet filtering on two names', async function() {
+    it('makes a simple facet filtering on two names', async function () {
 
       const v = await elasticitems.search({
         per_page: 1,
@@ -375,7 +382,7 @@ describe('should search movies', function() {
       assert.equal(38, v.data.aggregations.actors_or.buckets.length);
     });
 
-    it('makes a simple facet filtering on no names', async function() {
+    it('makes a simple facet filtering on no names', async function () {
 
       const v = await elasticitems.search({
         per_page: 1,
@@ -389,7 +396,7 @@ describe('should search movies', function() {
       assert.equal(2, v.pagination.total);
     });
 
-    it('makes a simple facet filtering on no existing filter', async function() {
+    it('makes a simple facet filtering on no existing filter', async function () {
 
       await assert.rejects(
         async () => {
@@ -407,7 +414,7 @@ describe('should search movies', function() {
       );
     });
 
-    xit('makes a simple facet filtering with ranges', async function() {
+    it('makes a simple facet filtering with ranges', async function () {
 
       let v = await elasticitems.search({
         per_page: 1,
@@ -454,7 +461,7 @@ describe('should search movies', function() {
       assert.equal(0, v.pagination.total);
     });
 
-    xit('makes a simple facet filtering with disjunctive ranges', async function() {
+    it('makes a simple facet filtering with disjunctive ranges', async function () {
 
       let v = await elasticitems.search({
         per_page: 1,
@@ -517,9 +524,9 @@ describe('should search movies', function() {
 
   });
 
-  describe('makes single facet query', function() {
+  describe('makes single facet query', function () {
 
-    it('should make single facet query on movies with size', async function() {
+    it('should make single facet query on movies with size', async function () {
 
       const v = await elasticitems.aggregation({
         name: 'tags',
@@ -534,7 +541,7 @@ describe('should search movies', function() {
       assert.equal(30, v.pagination.total);
     });
 
-    it('should make single facet query on movies with filters', async function() {
+    it('should make single facet query on movies with filters', async function () {
 
       const v = await elasticitems.aggregation({
         name: 'tags',
@@ -553,7 +560,7 @@ describe('should search movies', function() {
       assert.equal(5, v.pagination.total);
     });
 
-    it('should make single facet query on movies with not filters', async function() {
+    it('should make single facet query on movies with not filters', async function () {
 
       const v = await elasticitems.aggregation({
         name: 'tags',
@@ -570,7 +577,7 @@ describe('should search movies', function() {
       assert.equal(9, v.pagination.total);
     });
 
-    it('should handle not existing filter', async function() {
+    it('should handle not existing filter', async function () {
 
       await assert.rejects(
         async () => {
@@ -593,7 +600,7 @@ describe('should search movies', function() {
       );
     });
 
-    it('should make single facet query on movies with search query', async function() {
+    it('should make single facet query on movies with search query', async function () {
 
       const v = await elasticitems.aggregation({
         name: 'tags',
@@ -612,7 +619,7 @@ describe('should search movies', function() {
       assert.equal(5, v.pagination.total);
     });
 
-    it('should make single facet query on movies with search query_string', async function() {
+    it('should make single facet query on movies with search query_string', async function () {
 
       const v = await elasticitems.aggregation({
         name: 'tags',
@@ -631,7 +638,7 @@ describe('should search movies', function() {
       assert.equal(5, v.pagination.total);
     });
 
-    it('should make single facet query on movies with aggregation_query', async function() {
+    it('should make single facet query on movies with aggregation_query', async function () {
 
       const v = await elasticitems.aggregation({
         name: 'tags',
@@ -645,7 +652,7 @@ describe('should search movies', function() {
 
     });
 
-    it('should make single facet query on movies with alphabetical sorting', async function() {
+    it('should make single facet query on movies with alphabetical sorting', async function () {
 
       const v = await elasticitems.aggregation({
         name: 'tags',
@@ -657,7 +664,7 @@ describe('should search movies', function() {
       assert.equal(1, v.data.buckets[0].doc_count);
     });
 
-    it('should make single facet query on movies with field param', async function() {
+    it('should make single facet query on movies with field param', async function () {
 
       const v = await elasticitems.aggregation({
         field: 'tags',
@@ -669,7 +676,7 @@ describe('should search movies', function() {
       assert.equal(1, v.data.buckets[0].doc_count);
     });
 
-    it('should make single facet query on movies with field param', async function() {
+    it('should make single facet query on movies with field param', async function () {
 
       const v = await elasticitems.aggregation({
         field: 'genres.raw',
@@ -682,7 +689,7 @@ describe('should search movies', function() {
       assert.equal('Action', v.data.buckets[0].key);
     });
 
-    it('should make single facet query on movies with field param', async function() {
+    it('should make single facet query on movies with field param', async function () {
 
       const v = await elasticitems.aggregation({
         name: 'genres',
@@ -695,7 +702,7 @@ describe('should search movies', function() {
       assert.equal('Action', v.data.buckets[0].key);
     });
 
-    it('should throw an error for not existing facet', async function() {
+    it('should throw an error for not existing facet', async function () {
 
       await assert.rejects(
         async () => {
@@ -710,14 +717,14 @@ describe('should search movies', function() {
   });
 });
 
-describe('should search domains', function() {
+describe('should search domains', function () {
 
   const schema = {
     settings: {
       analysis: {
-        filter : {
-          my_word_delimiter : {
-            type : 'word_delimiter',
+        filter: {
+          my_word_delimiter: {
+            type: 'word_delimiter',
             preserve_original: 'true'
           }
         },
@@ -756,35 +763,44 @@ describe('should search domains', function() {
     text: 'ab ba ab ba com ab ba ba '
   }];
 
-  before(async function() {
+  before(async function () {
 
     await elastic.indices.delete({
       index: INDEX,
       ignore_unavailable: true,
     });
 
-    await elasticbulk.import(data, {
+    // Create index with schema
+    await elastic.indices.create({
       index: INDEX,
-      host: HOST,
+      body: schema
+    });
+
+    // Bulk import using native helpers
+    const bulkBody = data.flatMap((doc, i) => [
+      { index: { _index: INDEX, _id: i + 1 } },
+      doc
+    ]);
+
+    await elastic.bulk({
       refresh: true,
-      debug: true,
-      engine: 'elasticsearch7x',
-    }, schema);
+      body: bulkBody
+    });
   });
 
-  it('makes a simple search', async function() {
+  it('makes a simple search', async function () {
     const v = await elasticitems.search();
     assert.equal(v.pagination.total, 2);
   });
 
-  it('search exact domain', async function() {
+  it('search exact domain', async function () {
     const v = await elasticitems.search({
       query: 'domain.com'
     });
     assert.equal(v.pagination.total, 1);
   });
 
-  it('search exact domain with hyphen', async function() {
+  it('search exact domain with hyphen', async function () {
     const v = await elasticitems.search({
       query: 'ab-ba.com'
     });

@@ -5,7 +5,6 @@ const movies_schema = require('./fixtures/movies_schema.json');
 const movies = require('./fixtures/movies.json');
 const HOST = process.env.HOST || 'http://localhost:9200';
 const INDEX = 'test';
-const elasticbulk = require('elasticbulk');
 
 const elasticitems = ElasticItems({
   host: HOST,
@@ -13,7 +12,7 @@ const elasticitems = ElasticItems({
   type: INDEX,
 }, movies_config);
 
-const { Client } = require('@elastic/elasticsearch');
+const { Client } = require('@opensearch-project/opensearch');
 const elastic = new Client({
   node: HOST
 });
@@ -28,13 +27,22 @@ describe('should make crud operations', function() {
       ignore_unavailable: true,
     });
 
-    await elasticbulk.import(movies, {
+    // Create index with schema
+    await elastic.indices.create({
       index: INDEX,
-      host: HOST,
-      debug: true,
+      body: movies_schema
+    });
+
+    // Bulk import using native helpers
+    const bulkBody = movies.flatMap(doc => [
+      { index: { _index: INDEX, _id: doc.id } },
+      doc
+    ]);
+
+    await elastic.bulk({
       refresh: true,
-      engine: 'elasticsearch7x',
-    }, movies_schema);
+      body: bulkBody
+    });
   });
 
   it('adds new item', async function() {

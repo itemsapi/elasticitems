@@ -1,7 +1,7 @@
 {
   "name": "elasticitems",
-  "version": "2.0.16",
-  "description": "Faceted search client on top of Elasticsearch 7.x",
+  "version": "2.1.0",
+  "description": "Faceted search client on top of OpenSearch",
   "main": "index.js",
   "scripts": {
     "test": "mocha --bail --timeout 8000 tests/*",
@@ -19,13 +19,12 @@
   },
   "homepage": "https://github.com/itemsapi/elasticitems#readme",
   "dependencies": {
-    "@elastic/elasticsearch": "^7.14.0",
+    "@opensearch-project/opensearch": "^3.5.1",
     "bluebird": "^3.7.2",
     "bodybuilder": "^2.5.1",
     "lodash": "^4.17.21"
   },
   "devDependencies": {
-    "elasticbulk": "^1.0.29",
     "eslint": "^9.19.0",
     "mocha": "^11.1.0",
     "sinon": "^19.0.2"
